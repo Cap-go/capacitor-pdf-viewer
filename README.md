@@ -23,14 +23,14 @@
 - [x] Git remote points at this repository.
 - [x] Bootstrap init script and templates are removed.
 - [x] Compatibility table starts at Capacitor 8.
-- [ ] Update `src/definitions.ts` with the real public API and JSDoc.
-- [ ] Run `bun run docgen` and review generated API docs below.
-- [ ] Confirm examples in this file run against the real implementation.
+- [x] Update `src/definitions.ts` with the real public API and JSDoc.
+- [x] Run `bun run docgen` and review generated API docs below.
+- [x] Confirm examples in this file run against the real implementation.
 - [ ] Set GitHub repo description to start with `Capacitor plugin for ...`.
 - [x] GitHub homepage is `https://capgo.app/docs/plugins/pdf-viewer/`.
 - [ ] Create a GitHub repository custom social preview from `assets/github-social-template.svg`, export it to `assets/github-social-preview.png`, and upload it at GitHub **Settings** -> **General** -> **Social preview**.
 - [ ] Open docs/website PR and follow the complete website integration checklist in section **3) Open docs/website pull request**.
-- [ ] Run `bun run verify` before publishing.
+- [x] Run `bun run verify` before publishing.
 
 ## Problem & Scope
 
@@ -232,16 +232,22 @@ bunx cap sync
 ```typescript
 import { PdfViewer } from '@capgo/capacitor-pdf-viewer';
 
-const result = await PdfViewer.echo({ value: 'Hello from Capgo' });
-console.log(result.value);
+const result = await PdfViewer.open({
+  source: 'https://example.com/document.pdf',
+  mode: 'fullscreen',
+});
+console.log(result.pageCount, result.page);
+
+await PdfViewer.addListener('pageChange', ({ page }) => {
+  console.log('page', page);
+});
 ```
 
 ## Integration Notes
 
-- **iOS:** `Uses Apple PDFKit. Password-protected files unlock with the password you pass to `open`.`
-- **Android:** `Uses a PDF renderer that supports password-protected files, pinch zoom, and page navigation. The plugin does not add extra permissions.`
-- **Web:** `Falls back to the browser's own PDF viewer.`
-
+- **iOS:** Uses Apple PDFKit. Password-protected files unlock with the password you pass to `open`.
+- **Android:** Uses Pdfium (`io.legere:pdfiumandroid`) so password-protected files, pinch zoom, and page navigation work. The plugin library manifest does not declare `INTERNET` or storage permissions; your app must already allow network access if you open remote https URLs.
+- **Web:** Falls back to the browser's own PDF viewer (`iframe` / blob URL). Custom download headers are applied when fetching URL sources. A `password` cannot be injected into the browser viewer; the browser may still prompt.
 ## Example App
 
 The `example-app/` folder is linked via `file:..` and is intended for validating native wiring during development.
@@ -250,30 +256,81 @@ The `example-app/` folder is linked via `file:..` and is intended for validating
 
 <docgen-index>
 
-* [`echo(...)`](#echo)
+* [`open(...)`](#open)
+* [`close()`](#close)
+* [`goToPage(...)`](#gotopage)
+* [`setZoom(...)`](#setzoom)
 * [`getPluginVersion()`](#getpluginversion)
+* [`addListener('load', ...)`](#addlistenerload-)
+* [`addListener('pageChange', ...)`](#addlistenerpagechange-)
+* [`addListener('error', ...)`](#addlistenererror-)
+* [`addListener('close', ...)`](#addlistenerclose-)
+* [`addListener('linkTap', ...)`](#addlistenerlinktap-)
 * [Interfaces](#interfaces)
+* [Type Aliases](#type-aliases)
 
 </docgen-index>
 
 <docgen-api>
 <!--Update the source file JSDoc comments and rerun docgen to update the docs below-->
 
-Base API used by the template plugin.
+Capgo PDF Viewer plugin API.
 
-### echo(...)
+### open(...)
 
 ```typescript
-echo(options: EchoOptions) => Promise<EchoResult>
+open(options: OpenPdfOptions) => Promise<OpenPdfResult>
 ```
 
-Echo a string to validate JS &lt;-&gt; native wiring.
+Open a PDF from a file, path, URL, or base64 source.
 
-| Param         | Type                                                |
-| ------------- | --------------------------------------------------- |
-| **`options`** | <code><a href="#echooptions">EchoOptions</a></code> |
+| Param         | Type                                                      |
+| ------------- | --------------------------------------------------------- |
+| **`options`** | <code><a href="#openpdfoptions">OpenPdfOptions</a></code> |
 
-**Returns:** <code>Promise&lt;<a href="#echoresult">EchoResult</a>&gt;</code>
+**Returns:** <code>Promise&lt;<a href="#openpdfresult">OpenPdfResult</a>&gt;</code>
+
+--------------------
+
+
+### close()
+
+```typescript
+close() => Promise<void>
+```
+
+Close the active viewer and remove any overlay.
+
+--------------------
+
+
+### goToPage(...)
+
+```typescript
+goToPage(options: GoToPageOptions) => Promise<void>
+```
+
+Jump to a 1-based page number.
+
+| Param         | Type                                                        |
+| ------------- | ----------------------------------------------------------- |
+| **`options`** | <code><a href="#gotopageoptions">GoToPageOptions</a></code> |
+
+--------------------
+
+
+### setZoom(...)
+
+```typescript
+setZoom(options: SetZoomOptions) => Promise<void>
+```
+
+Set the zoom scale multiplier (`1` ≈ fit default).
+On web this resolves without changing the browser viewer zoom.
+
+| Param         | Type                                                      |
+| ------------- | --------------------------------------------------------- |
+| **`options`** | <code><a href="#setzoomoptions">SetZoomOptions</a></code> |
 
 --------------------
 
@@ -284,9 +341,99 @@ Echo a string to validate JS &lt;-&gt; native wiring.
 getPluginVersion() => Promise<PluginVersionResult>
 ```
 
-Returns the platform implementation version marker.
+Get the native/web implementation version marker.
 
 **Returns:** <code>Promise&lt;<a href="#pluginversionresult">PluginVersionResult</a>&gt;</code>
+
+--------------------
+
+
+### addListener('load', ...)
+
+```typescript
+addListener(eventName: 'load', listenerFunc: (event: PdfLoadEvent) => void) => Promise<PluginListenerHandle>
+```
+
+Listen for successful PDF load.
+
+| Param              | Type                                                                      |
+| ------------------ | ------------------------------------------------------------------------- |
+| **`eventName`**    | <code>'load'</code>                                                       |
+| **`listenerFunc`** | <code>(event: <a href="#pdfloadevent">PdfLoadEvent</a>) =&gt; void</code> |
+
+**Returns:** <code>Promise&lt;<a href="#pluginlistenerhandle">PluginListenerHandle</a>&gt;</code>
+
+--------------------
+
+
+### addListener('pageChange', ...)
+
+```typescript
+addListener(eventName: 'pageChange', listenerFunc: (event: PdfPageChangeEvent) => void) => Promise<PluginListenerHandle>
+```
+
+Listen for page changes.
+
+| Param              | Type                                                                                  |
+| ------------------ | ------------------------------------------------------------------------------------- |
+| **`eventName`**    | <code>'pageChange'</code>                                                             |
+| **`listenerFunc`** | <code>(event: <a href="#pdfpagechangeevent">PdfPageChangeEvent</a>) =&gt; void</code> |
+
+**Returns:** <code>Promise&lt;<a href="#pluginlistenerhandle">PluginListenerHandle</a>&gt;</code>
+
+--------------------
+
+
+### addListener('error', ...)
+
+```typescript
+addListener(eventName: 'error', listenerFunc: (event: PdfErrorEvent) => void) => Promise<PluginListenerHandle>
+```
+
+Listen for errors while opening or displaying a PDF.
+
+| Param              | Type                                                                        |
+| ------------------ | --------------------------------------------------------------------------- |
+| **`eventName`**    | <code>'error'</code>                                                        |
+| **`listenerFunc`** | <code>(event: <a href="#pdferrorevent">PdfErrorEvent</a>) =&gt; void</code> |
+
+**Returns:** <code>Promise&lt;<a href="#pluginlistenerhandle">PluginListenerHandle</a>&gt;</code>
+
+--------------------
+
+
+### addListener('close', ...)
+
+```typescript
+addListener(eventName: 'close', listenerFunc: (event: PdfCloseEvent) => void) => Promise<PluginListenerHandle>
+```
+
+Listen for viewer close.
+
+| Param              | Type                                                                        |
+| ------------------ | --------------------------------------------------------------------------- |
+| **`eventName`**    | <code>'close'</code>                                                        |
+| **`listenerFunc`** | <code>(event: <a href="#pdfcloseevent">PdfCloseEvent</a>) =&gt; void</code> |
+
+**Returns:** <code>Promise&lt;<a href="#pluginlistenerhandle">PluginListenerHandle</a>&gt;</code>
+
+--------------------
+
+
+### addListener('linkTap', ...)
+
+```typescript
+addListener(eventName: 'linkTap', listenerFunc: (event: PdfLinkTapEvent) => void) => Promise<PluginListenerHandle>
+```
+
+Listen for taps on links inside the PDF.
+
+| Param              | Type                                                                            |
+| ------------------ | ------------------------------------------------------------------------------- |
+| **`eventName`**    | <code>'linkTap'</code>                                                          |
+| **`listenerFunc`** | <code>(event: <a href="#pdflinktapevent">PdfLinkTapEvent</a>) =&gt; void</code> |
+
+**Returns:** <code>Promise&lt;<a href="#pluginlistenerhandle">PluginListenerHandle</a>&gt;</code>
 
 --------------------
 
@@ -294,22 +441,48 @@ Returns the platform implementation version marker.
 ### Interfaces
 
 
-#### EchoResult
+#### OpenPdfResult
 
-Echo response payload.
+Result returned after a PDF successfully opens.
 
-| Prop        | Type                | Description                      |
-| ----------- | ------------------- | -------------------------------- |
-| **`value`** | <code>string</code> | The same value passed to `echo`. |
+| Prop            | Type                | Description                            |
+| --------------- | ------------------- | -------------------------------------- |
+| **`pageCount`** | <code>number</code> | Total number of pages in the document. |
+| **`page`**      | <code>number</code> | Current page, 1-based.                 |
 
 
-#### EchoOptions
+#### OpenPdfOptions
 
-Input payload for the echo call.
+Options for opening a PDF.
 
-| Prop        | Type                | Description                                                           |
-| ----------- | ------------------- | --------------------------------------------------------------------- |
-| **`value`** | <code>string</code> | Arbitrary text that should be returned by native/web implementations. |
+| Prop             | Type                                                            | Description                                                                                                                                                                      | Default                   |
+| ---------------- | --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
+| **`source`**     | <code>string</code>                                             | PDF location: file URL, device path, https URL, or base64 (raw or `data:` URI).                                                                                                  |                           |
+| **`sourceType`** | <code><a href="#pdfsourcetype">PdfSourceType</a></code>         | Explicit source kind. When omitted: - `data:` or raw base64 without a scheme =&gt; `base64` - `http`/`https` =&gt; `url` - otherwise =&gt; `file` (treated like a path/file URL) |                           |
+| **`headers`**    | <code><a href="#record">Record</a>&lt;string, string&gt;</code> | HTTP headers used when downloading an https `url` source (e.g. auth cookies).                                                                                                    |                           |
+| **`password`**   | <code>string</code>                                             | Password for encrypted PDFs. On web, the password cannot be injected into the browser viewer; the browser may still prompt.                                                      |                           |
+| **`mode`**       | <code><a href="#pdfdisplaymode">PdfDisplayMode</a></code>       | How to present the viewer.                                                                                                                                                       | <code>'fullscreen'</code> |
+| **`elementId`**  | <code>string</code>                                             | DOM element id used when `mode` is `inline`. Native measures this element and places the viewer over it.                                                                         |                           |
+| **`page`**       | <code>number</code>                                             | Initial page, 1-based.                                                                                                                                                           |                           |
+| **`scrollMode`** | <code><a href="#pdfscrollmode">PdfScrollMode</a></code>         | Scroll behavior.                                                                                                                                                                 | <code>'continuous'</code> |
+
+
+#### GoToPageOptions
+
+Options for jumping to a page.
+
+| Prop       | Type                | Description           |
+| ---------- | ------------------- | --------------------- |
+| **`page`** | <code>number</code> | Target page, 1-based. |
+
+
+#### SetZoomOptions
+
+Options for changing zoom.
+
+| Prop        | Type                | Description                                        |
+| ----------- | ------------------- | -------------------------------------------------- |
+| **`scale`** | <code>number</code> | Zoom multiplier. `1` is the fit-ish default scale. |
 
 
 #### PluginVersionResult
@@ -319,5 +492,93 @@ Plugin version payload.
 | Prop          | Type                | Description                                                 |
 | ------------- | ------------------- | ----------------------------------------------------------- |
 | **`version`** | <code>string</code> | Version identifier returned by the platform implementation. |
+
+
+#### PluginListenerHandle
+
+| Prop         | Type                                      |
+| ------------ | ----------------------------------------- |
+| **`remove`** | <code>() =&gt; Promise&lt;void&gt;</code> |
+
+
+#### PdfLoadEvent
+
+Emitted when the PDF finishes loading.
+
+| Prop            | Type                | Description            |
+| --------------- | ------------------- | ---------------------- |
+| **`pageCount`** | <code>number</code> | Total number of pages. |
+| **`page`**      | <code>number</code> | Current page, 1-based. |
+
+
+#### PdfPageChangeEvent
+
+Emitted when the visible page changes.
+
+| Prop            | Type                | Description            |
+| --------------- | ------------------- | ---------------------- |
+| **`page`**      | <code>number</code> | Current page, 1-based. |
+| **`pageCount`** | <code>number</code> | Total number of pages. |
+
+
+#### PdfErrorEvent
+
+Emitted when opening or rendering fails.
+
+| Prop          | Type                | Description                   |
+| ------------- | ------------------- | ----------------------------- |
+| **`message`** | <code>string</code> | Human-readable error message. |
+
+
+#### PdfLinkTapEvent
+
+Emitted when the user taps a link inside the PDF.
+
+| Prop      | Type                | Description                         |
+| --------- | ------------------- | ----------------------------------- |
+| **`url`** | <code>string</code> | Destination URL of the tapped link. |
+
+
+### Type Aliases
+
+
+#### PdfSourceType
+
+How the `source` string should be interpreted.
+When omitted, the plugin infers the type from the string shape.
+
+<code>'file' | 'path' | 'url' | 'base64'</code>
+
+
+#### Record
+
+Construct a type with a set of properties K of type T
+
+<code>{ [P in K]: T; }</code>
+
+
+#### PdfDisplayMode
+
+Presentation mode for the viewer.
+- `fullscreen`: covers the app with a native/browser overlay.
+- `inline`: places the viewer over a DOM element identified by `elementId`.
+
+<code>'fullscreen' | 'inline'</code>
+
+
+#### PdfScrollMode
+
+Page scrolling behavior.
+- `continuous`: pages flow vertically (or as one scrollable document).
+- `single`: one page at a time.
+
+<code>'continuous' | 'single'</code>
+
+
+#### PdfCloseEvent
+
+Emitted when the viewer is closed.
+
+<code><a href="#record">Record</a>&lt;string, never&gt;</code>
 
 </docgen-api>
