@@ -3,41 +3,87 @@
 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
 endobj
 2 0 obj
-<< /Length 117 >>
-stream
-BT /F1 24 Tf 72 720 Td (Page 1 - Capgo PDF Viewer) Tj 0 -36 Td /F1 14 Tf (Open PDFs inside your Capacitor app.) Tj ET
-endstream
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
 endobj
 3 0 obj
-<< /Length 121 >>
+<< /Length 1365 >>
 stream
-BT /F1 24 Tf 72 720 Td (Page 2 - Sample Document) Tj 0 -36 Td /F1 14 Tf (Use next, prev, zoom, and close controls.) Tj ET
+1 1 1 rg 0 0 612 792 re f
+0 0.141 0.267 rg 0 520 612 272 re f
+0.067 0.62 1 rg 0 520 612 6 re f
+1 1 1 rg 86 728 m 114 700 l 86 672 l 58 700 l h f
+0 0.141 0.267 rg 86 716 m 102 700 l 86 684 l 70 700 l h f
+BT 1 1 1 rg /F2 28 Tf 128 688 Td (Capgo) Tj ET
+BT 0.067 0.62 1 rg /F1 22 Tf 72 630 Td (PDF Viewer) Tj ET
+BT 1 1 1 rg /F1 16 Tf 72 574 Td (Open any PDF inside the app.) Tj ET
+BT 0.75 0.86 0.95 rg /F1 13 Tf 72 550 Td (From a file, a URL, or base64.) Tj ET
+BT 0 0.141 0.267 rg /F2 18 Tf 72 470 Td (Read it natively) Tj ET
+0.93 0.96 0.99 rg 72 380 468 64 re f
+0.067 0.62 1 rg 72 380 6 64 re f
+BT 0.067 0.62 1 rg /F2 12 Tf 96 414 Td (01) Tj ET
+BT 0 0.141 0.267 rg /F2 14 Tf 140 414 Td (Fullscreen) Tj ET
+BT 0.318 0.322 0.443 rg /F1 11 Tf 140 394 Td (A native viewer over the app) Tj ET
+0.93 0.96 0.99 rg 72 300 468 64 re f
+0.067 0.62 1 rg 72 300 6 64 re f
+BT 0.067 0.62 1 rg /F2 12 Tf 96 334 Td (02) Tj ET
+BT 0 0.141 0.267 rg /F2 14 Tf 140 334 Td (Page controls) Tj ET
+BT 0.318 0.322 0.443 rg /F1 11 Tf 140 314 Td (Next, previous, and jump) Tj ET
+0.93 0.96 0.99 rg 72 220 468 64 re f
+0.067 0.62 1 rg 72 220 6 64 re f
+BT 0.067 0.62 1 rg /F2 12 Tf 96 254 Td (03) Tj ET
+BT 0 0.141 0.267 rg /F2 14 Tf 140 254 Td (Zoom) Tj ET
+BT 0.318 0.322 0.443 rg /F1 11 Tf 140 234 Td (Pinch, or set the scale) Tj ET
+BT 0.318 0.322 0.443 rg /F1 11 Tf 72 48 Td (Capgo   ·   1 of 2) Tj ET
 endstream
 endobj
 4 0 obj
-<< /Type /Page /Parent 6 0 R /MediaBox [0 0 612 792] /Contents 2 0 R /Resources << /Font << /F1 1 0 R >> >> >>
+<< /Length 928 >>
+stream
+1 1 1 rg 0 0 612 792 re f
+0 0.141 0.267 rg 0 680 612 112 re f
+0.067 0.62 1 rg 0 680 612 6 re f
+1 1 1 rg 86 758 m 108 736 l 86 714 l 64 736 l h f
+0 0.141 0.267 rg 86 748 m 98 736 l 86 724 l 74 736 l h f
+BT 1 1 1 rg /F2 22 Tf 124 724 Td (Try the controls) Tj ET
+BT 0 0.141 0.267 rg /F2 18 Tf 72 620 Td (This is page 2) Tj ET
+BT 0.318 0.322 0.443 rg /F1 13 Tf 72 590 Td (Use next, previous, zoom, and close.) Tj ET
+0.067 0.62 1 rg 72 520 90.6 36 re f
+BT 1 1 1 rg /F2 12 Tf 84 532 Td (Next page) Tj ET
+0.067 0.62 1 rg 174.6 520 83.2 36 re f
+BT 1 1 1 rg /F2 12 Tf 186.6 532 Td (Previous) Tj ET
+0.067 0.62 1 rg 269.8 520 75.8 36 re f
+BT 1 1 1 rg /F2 12 Tf 281.8 532 Td (Zoom in) Tj ET
+0.067 0.62 1 rg 357.6 520 61 36 re f
+BT 1 1 1 rg /F2 12 Tf 369.6 532 Td (Close) Tj ET
+BT 0.318 0.322 0.443 rg /F1 13 Tf 72 460 Td (Swipe between pages in the native viewer.) Tj ET
+BT 0.318 0.322 0.443 rg /F1 11 Tf 72 48 Td (Capgo   ·   2 of 2) Tj ET
+endstream
 endobj
 5 0 obj
-<< /Type /Page /Parent 6 0 R /MediaBox [0 0 612 792] /Contents 3 0 R /Resources << /Font << /F1 1 0 R >> >> >>
+<< /Type /Page /Parent 7 0 R /MediaBox [0 0 612 792] /Contents 3 0 R /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> >>
 endobj
 6 0 obj
-<< /Type /Pages /Kids [4 0 R 5 0 R] /Count 2 >>
+<< /Type /Page /Parent 7 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> >>
 endobj
 7 0 obj
-<< /Type /Catalog /Pages 6 0 R >>
+<< /Type /Pages /Count 2 /Kids [5 0 R 6 0 R] >>
+endobj
+8 0 obj
+<< /Type /Catalog /Pages 7 0 R >>
 endobj
 xref
-0 8
+0 9
 0000000000 65535 f 
 0000000009 00000 n 
 0000000079 00000 n 
-0000000247 00000 n 
-0000000419 00000 n 
-0000000545 00000 n 
-0000000671 00000 n 
-0000000734 00000 n 
+0000000154 00000 n 
+0000001571 00000 n 
+0000002550 00000 n 
+0000002686 00000 n 
+0000002822 00000 n 
+0000002885 00000 n 
 trailer
-<< /Size 8 /Root 7 0 R >>
+<< /Size 9 /Root 8 0 R >>
 startxref
-783
+2934
 %%EOF
