@@ -1,0 +1,23 @@
+{
+  "name": "plugin-template-example",
+  "version": "1.0.0",
+  "description": "Example Capacitor app for @capgo/capacitor-pdf-viewer",
+  "type": "module",
+  "scripts": {
+    "start": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@capacitor/core": "^8.5.2",
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/ios": "^8.5.2",
+    "@capgo/capacitor-pdf-viewer": "file:..",
+    "@capgo/capacitor-updater": "^8.45.11"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.5.2",
+    "typescript": "^6.0.3",
+    "vite": "^8.3.0"
+  }
+}

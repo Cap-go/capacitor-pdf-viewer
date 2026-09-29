@@ -1,0 +1,90 @@
+name: Build and publish
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  # Tests already passed before tag was created, so just build and deploy
+  deploy:
+    runs-on: ubuntu-latest
+    # Keep this job capped at 10 minutes; never raise it unless explicitly asked.
+    timeout-minutes: 10
+    name: 'Build and publish to npm'
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - name: Check out
+        uses: actions/checkout@v6.0.2
+        with:
+          fetch-depth: 0
+          filter: blob:none
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@v2.2.0
+      - name: Install dependencies
+        id: install_code
+        run: bun i
+      - name: Check plugin wiring
+        run: bun run check:wiring
+      - name: Build
+        id: build_code
+        run: bun run build
+      - name: Generate AI changelog
+        id: changelog
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: bun run changelog:ai
+      - name: Setup Node.js for npm publish
+        uses: actions/setup-node@v6.4.0
+        with:
+          node-version: 24.x
+          registry-url: 'https://registry.npmjs.org'
+      - name: Install npm CLI for staged publishing
+        run: npm install -g npm@^11.15.0
+      - name: Stage publish to npm
+        if: ${{ !contains(github.ref, '-alpha.') }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          npm --version
+          npm stage publish --provenance --access public --ignore-scripts
+      - name: Stage publish to npm with next tag
+        if: ${{ contains(github.ref, '-alpha.') }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          npm --version
+          npm stage publish --tag next --provenance --access public --ignore-scripts
+      - name: Request stage approval
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.NPM_STAGE_DISPATCH_TOKEN }}
+        run: |
+          gh api --method POST repos/Cap-go/automations/dispatches \
+            -f event_type=npm-stage-approve \
+            -f "client_payload[repository]=${GITHUB_REPOSITORY}" \
+            -f "client_payload[run_id]=${GITHUB_RUN_ID}" \
+            -f "client_payload[package]=$(node -p "require('./package.json').name")"
+      - name: Create GitHub release
+        id: create_release
+        uses: softprops/action-gh-release@v3.0.0
+        with:
+          body: |
+            ## 🆕 Changelog
+            
+            ${{ steps.changelog.outputs.result || '_Changelog was not generated automatically for this release._' }}
+            
+            ---
+
+            🔗 **Full Changelog**: https://github.com/${{ github.repository }}/compare/${{ steps.changelog.outputs.from_tag || github.ref_name }}...${{ steps.changelog.outputs.to_tag || github.ref_name }}
+          make_latest: true
+          token: '${{ secrets.PERSONAL_ACCESS_TOKEN }}'
+          prerelease: ${{ contains(github.ref, '-alpha.') }}
