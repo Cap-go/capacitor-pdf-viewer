@@ -7,6 +7,20 @@ import { CapacitorUpdater } from '@capgo/capacitor-updater';
 const output = document.getElementById('plugin-output');
 const sampleUrl = new URL('/sample.pdf', window.location.origin).href;
 
+// The WebView origin is not a network server, so native code cannot download it.
+const bundledSample = async () => {
+  const response = await fetch(sampleUrl);
+  if (!response.ok) {
+    throw new Error(`Failed to load sample PDF (${response.status})`);
+  }
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  }
+  return btoa(binary);
+};
+
 let currentPage = 1;
 let pageCount = 1;
 let zoom = 1;
@@ -45,8 +59,8 @@ document.getElementById('open-fullscreen').addEventListener('click', async () =>
   try {
     zoom = 1;
     const result = await PdfViewer.open({
-      source: sampleUrl,
-      sourceType: 'url',
+      source: await bundledSample(),
+      sourceType: 'base64',
       mode: 'fullscreen',
       page: 1,
       scrollMode: 'continuous',
@@ -63,8 +77,8 @@ document.getElementById('open-inline').addEventListener('click', async () => {
   try {
     zoom = 1;
     const result = await PdfViewer.open({
-      source: sampleUrl,
-      sourceType: 'url',
+      source: await bundledSample(),
+      sourceType: 'base64',
       mode: 'inline',
       elementId: 'inline-pdf',
       page: 1,

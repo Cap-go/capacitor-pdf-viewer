@@ -7,6 +7,10 @@
   <h2><a href="https://capgo.app/consulting/?ref=plugin_pdf_viewer"> Missing a feature? We’ll build the plugin for you 💪</a></h2>
 </div>
 
+<p align="center">
+  <img src="./screenshots/android-demo.webp" alt="Android emulator showing the example PDF open on two pages" width="280" />
+</p>
+
 ## Snapshot
 
 - **Plugin name:** `PDF Viewer`
@@ -250,7 +254,11 @@ await PdfViewer.addListener('pageChange', ({ page }) => {
 - **Web:** Falls back to the browser's own PDF viewer (`iframe` / blob URL). Custom download headers are applied when fetching URL sources. A `password` cannot be injected into the browser viewer; the browser may still prompt.
 ## Example App
 
-The `example-app/` folder is linked via `file:..` and is intended for validating native wiring during development.
+The `example-app/` folder is linked via `file:..` and is intended for validating native wiring during development. It loads `public/sample.pdf` in the WebView and opens those bytes with the plugin, because the WebView origin is not a network server.
+
+<p align="center">
+  <img src="./screenshots/android-demo.webp" alt="Android emulator showing the example PDF open on two pages" width="280" />
+</p>
 
 ## API
 
