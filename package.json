@@ -1,6 +1,6 @@
 {
   "name": "@capgo/capacitor-pdf-viewer",
-  "version": "8.0.0",
+  "version": "8.1.0",
   "description": "Capacitor plugin for opening PDFs inside the app.",
   "main": "dist/plugin.cjs.js",
   "module": "dist/esm/index.js",
