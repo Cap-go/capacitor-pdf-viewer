@@ -2,31 +2,34 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-
-
     <meta
       name="viewport"
       content="viewport-fit=cover, width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
     <meta name="format-detection" content="telephone=no" />
     <meta name="msapplication-tap-highlight" content="no" />
-<title>@capgo/capacitor-pdf-viewer</title>
+    <title>@capgo/capacitor-pdf-viewer</title>
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
     <main class="container">
       <h1>@capgo/capacitor-pdf-viewer</h1>
-      <p class="lead">Quickly validate the template plugin wiring.</p>
+      <p class="lead">Open PDFs fullscreen or inline, then navigate and zoom.</p>
 
-      <label for="echo-value">Echo value</label>
-      <input id="echo-value" type="text" value="Hello from example app" />
+      <div id="inline-pdf" class="inline-box" aria-label="Inline PDF area"></div>
 
       <div class="actions">
-        <button id="run-echo">Run echo</button>
-        <button id="get-version">Get plugin version</button>
+        <button id="open-fullscreen" type="button">Open fullscreen</button>
+        <button id="open-inline" type="button">Open inline</button>
+        <button id="prev-page" type="button">Prev page</button>
+        <button id="next-page" type="button">Next page</button>
+        <button id="jump-page" type="button">Jump to page 2</button>
+        <button id="zoom-in" type="button">Zoom in</button>
+        <button id="close-pdf" type="button">Close</button>
+        <button id="get-version" type="button">Get version</button>
       </div>
 
-      <pre id="plugin-output">Press a button to run an action.</pre>
+      <pre id="plugin-output">Events will appear here.</pre>
     </main>
     <script type="module" src="/src/main.js"></script>
   </body>
