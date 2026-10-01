@@ -7,7 +7,7 @@ final class PdfWebViewTouchRouterView: UIView {
     var overlayRects: [CGRect] = []
     var isRoutingEnabled = true
     /// Locked for the current touch sequence (first finger down through all fingers up).
-    private var gestureRoutesToPdf: Bool?
+    fileprivate var gestureRoutesToPdf: Bool?
 
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
         guard let webView else { return nil }
