@@ -36,7 +36,8 @@ final class PdfWebViewTouchRouterView: UIView {
             gestureRoutesToPdf = nil
             return
         }
-        if active.allSatisfy({ $0.phase == .began }) {
+        // New single-finger gesture only; do not reset when a second finger joins (both .began).
+        if active.count == 1, active.first?.phase == .began {
             gestureRoutesToPdf = nil
         }
     }
