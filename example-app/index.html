@@ -12,7 +12,18 @@
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
-    <main class="container">
+    <div id="custom-pdf-ui" class="custom-pdf-ui" hidden aria-hidden="true">
+      <div class="custom-toolbar">
+        <button type="button" id="custom-prev" aria-label="Previous page">Prev</button>
+        <span id="custom-page-indicator">1 / 1</span>
+        <button type="button" id="custom-next" aria-label="Next page">Next</button>
+        <button type="button" id="custom-zoom-out" aria-label="Zoom out">−</button>
+        <button type="button" id="custom-zoom-in" aria-label="Zoom in">+</button>
+        <button type="button" id="custom-close" aria-label="Close PDF">Close</button>
+      </div>
+    </div>
+
+    <main class="container" id="demo-shell">
       <header class="brand">
         <img class="logo" src="/capgo-logo.webp" width="44" height="44" alt="" />
         <div>
@@ -20,13 +31,14 @@
           <h1>PDF Viewer</h1>
         </div>
       </header>
-      <p class="lead">Open a PDF fullscreen or inline, then turn the page and zoom.</p>
+      <p class="lead">Open a PDF fullscreen, inline, or behind this WebView with your own HTML toolbar.</p>
 
       <div id="inline-pdf" class="inline-box" aria-label="Inline PDF area"></div>
 
       <div class="actions">
         <button id="open-fullscreen" type="button">Open fullscreen</button>
         <button id="open-inline" type="button">Open inline</button>
+        <button id="open-custom-ui" type="button">Custom UI (toBack)</button>
         <button id="open-url" type="button" hidden>Open from URL</button>
         <button id="prev-page" type="button">Prev page</button>
         <button id="next-page" type="button">Next page</button>

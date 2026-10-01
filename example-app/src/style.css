@@ -126,3 +126,54 @@ pre#plugin-output {
   background: rgba(15, 23, 42, 0.45);
   overflow: hidden;
 }
+
+body.custom-pdf-active,
+body.custom-pdf-active #demo-shell {
+  background: transparent !important;
+}
+
+body.custom-pdf-active main.container {
+  background: transparent;
+  border-color: transparent;
+  pointer-events: none;
+}
+
+body.custom-pdf-active .custom-pdf-ui {
+  pointer-events: auto;
+}
+
+.custom-pdf-ui {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.custom-toolbar {
+  position: fixed;
+  top: max(12px, env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: 999px;
+  background: rgba(0, 22, 42, 0.88);
+  border: 1px solid rgba(17, 158, 255, 0.35);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+}
+
+.custom-toolbar button {
+  padding: 0.45rem 0.85rem;
+  font-size: 0.85rem;
+}
+
+#custom-page-indicator {
+  min-width: 4.5rem;
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.9rem;
+}

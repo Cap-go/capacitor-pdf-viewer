@@ -22,6 +22,12 @@ describe('PdfViewerWeb', () => {
     );
   });
 
+  it('rejects underWebView on web', async () => {
+    await expect(
+      viewer.open({ source: SAMPLE_PDF_BASE64, sourceType: 'base64', mode: 'underWebView' }),
+    ).rejects.toThrow(/not available on web/i);
+  });
+
   it('opens url sources with forwarded headers', async () => {
     const pdfBytes = Uint8Array.from(atob(SAMPLE_PDF_BASE64), (char) => char.charCodeAt(0));
     const originalFetch = globalThis.fetch;

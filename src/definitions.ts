@@ -13,10 +13,11 @@ export type PdfSourceType = 'file' | 'path' | 'url' | 'base64';
  *
  * - `fullscreen`: covers the app with a native or browser overlay.
  * - `inline`: places the viewer over a DOM element identified by `elementId`.
+ * - `underWebView`: native PDF behind a transparent WebView (see `toBack`); use HTML for chrome.
  *
  * @since 8.0.0
  */
-export type PdfDisplayMode = 'fullscreen' | 'inline';
+export type PdfDisplayMode = 'fullscreen' | 'inline' | 'underWebView';
 
 /**
  * Page scrolling behavior.
@@ -27,6 +28,31 @@ export type PdfDisplayMode = 'fullscreen' | 'inline';
  * @since 8.0.0
  */
 export type PdfScrollMode = 'continuous' | 'single';
+
+/**
+ * Layout rectangle for `underWebView` / `toBack` presentation, in CSS pixels relative to the WebView viewport.
+ * Omit width and height to fill the WebView bounds.
+ *
+ * @since 8.0.0
+ */
+export interface PdfLayoutOptions {
+  /**
+   * Horizontal origin in CSS pixels from the WebView viewport left edge.
+   */
+  x?: number;
+  /**
+   * Vertical origin in CSS pixels from the WebView viewport top edge.
+   */
+  y?: number;
+  /**
+   * Width in CSS pixels. When omitted with height, fills the WebView width.
+   */
+  width?: number;
+  /**
+   * Height in CSS pixels. When omitted with width, fills the WebView height.
+   */
+  height?: number;
+}
 
 /**
  * Options for {@link PdfViewerPlugin.open}.
@@ -70,6 +96,28 @@ export interface OpenPdfOptions {
    * @since 8.0.0
    */
   mode?: PdfDisplayMode;
+  /**
+   * Shorthand for `mode: 'underWebView'`. When true, the native PDF is placed behind a transparent WebView
+   * so your HTML controls sit on top. Implies `nativeUi: false`.
+   *
+   * @default false
+   * @platform android, ios
+   * @since 8.0.0
+   */
+  toBack?: boolean;
+  /**
+   * When false, hides all native chrome (close button, toolbars). Defaults to false when `toBack` or
+   * `mode` is `underWebView`, otherwise true for fullscreen.
+   *
+   * @since 8.0.0
+   */
+  nativeUi?: boolean;
+  /**
+   * Layout for `underWebView` / `toBack`. Ignored for inline and classic fullscreen overlay.
+   *
+   * @since 8.0.0
+   */
+  layout?: PdfLayoutOptions;
   /**
    * DOM element id used when `mode` is `inline`.
    * Native code measures this element and places the viewer over it.
@@ -133,6 +181,30 @@ export interface SetZoomOptions {
 }
 
 /**
+ * Current page payload.
+ *
+ * @since 8.0.0
+ */
+export interface PdfCurrentPageResult {
+  /**
+   * Current page, 1-based.
+   */
+  page: number;
+}
+
+/**
+ * Page count payload.
+ *
+ * @since 8.0.0
+ */
+export interface PdfPageCountResult {
+  /**
+   * Total number of pages.
+   */
+  pageCount: number;
+}
+
+/**
  * Plugin version payload from {@link PdfViewerPlugin.getPluginVersion}.
  *
  * @since 8.0.0
@@ -174,6 +246,18 @@ export interface PdfPageChangeEvent {
    * Total number of pages.
    */
   pageCount: number;
+}
+
+/**
+ * Payload for the `zoomChange` event.
+ *
+ * @since 8.0.0
+ */
+export interface PdfZoomChangeEvent {
+  /**
+   * Zoom multiplier relative to the fit default (`1` is width fit on native).
+   */
+  scale: number;
 }
 
 /**
@@ -243,12 +327,61 @@ export interface PdfViewerPlugin {
   goToPage(options: GoToPageOptions): Promise<void>;
 
   /**
+   * Move to the next page when one exists.
+   *
+   * @since 8.0.0
+   */
+  nextPage(): Promise<void>;
+
+  /**
+   * Move to the previous page when one exists.
+   *
+   * @since 8.0.0
+   */
+  previousPage(): Promise<void>;
+
+  /**
    * Set the zoom scale multiplier (`1` is the default fit scale on native).
-   * On web this resolves without changing the browser viewer zoom.
+   * On web this resolves without changing the browser viewer zoom unless `toBack` mode is active.
    *
    * @since 8.0.0
    */
   setZoom(options: SetZoomOptions): Promise<void>;
+
+  /**
+   * Read the total page count of the open document.
+   *
+   * @since 8.0.0
+   */
+  getPageCount(): Promise<PdfPageCountResult>;
+
+  /**
+   * Read the current 1-based page index.
+   *
+   * @since 8.0.0
+   */
+  getCurrentPage(): Promise<PdfCurrentPageResult>;
+
+  /**
+   * Hide the native PDF layer without unloading the document.
+   *
+   * @since 8.0.0
+   */
+  hide(): Promise<void>;
+
+  /**
+   * Show the native PDF layer after `hide()`.
+   *
+   * @since 8.0.0
+   */
+  show(): Promise<void>;
+
+  /**
+   * Reposition or resize the native PDF when using `underWebView` / `toBack`.
+   *
+   * @since 8.0.0
+   */
+  updateLayout(options: PdfLayoutOptions): Promise<void>;
 
   /**
    * Get the native or web implementation version marker.
@@ -272,6 +405,16 @@ export interface PdfViewerPlugin {
   addListener(
     eventName: 'pageChange',
     listenerFunc: (event: PdfPageChangeEvent) => void,
+  ): Promise<PluginListenerHandle>;
+
+  /**
+   * Listen for zoom changes from pinch gestures or {@link PdfViewerPlugin.setZoom}.
+   *
+   * @since 8.0.0
+   */
+  addListener(
+    eventName: 'zoomChange',
+    listenerFunc: (event: PdfZoomChangeEvent) => void,
   ): Promise<PluginListenerHandle>;
 
   /**

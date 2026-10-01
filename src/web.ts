@@ -4,6 +4,9 @@ import type {
   GoToPageOptions,
   OpenPdfOptions,
   OpenPdfResult,
+  PdfCurrentPageResult,
+  PdfLayoutOptions,
+  PdfPageCountResult,
   PdfViewerPlugin,
   PluginVersionResult,
   SetZoomOptions,
@@ -16,17 +19,30 @@ export class PdfViewerWeb extends WebPlugin implements PdfViewerPlugin {
   private revokeUrl: (() => void) | null = null;
   private page = 1;
   private pageCount = 1;
+  private zoom = 1;
   private openToken = 0;
+
+  private rejectUnderWebView(options: OpenPdfOptions): void {
+    if (options.toBack === true || options.mode === 'underWebView') {
+      const message =
+        'underWebView / toBack is not available on web. Use fullscreen or inline, or test on iOS/Android.';
+      this.notifyListeners('error', { message });
+      throw this.unavailable(message);
+    }
+  }
 
   /**
    * Open a PDF in the browser viewer (fullscreen overlay or inline host element).
    */
   async open(options: OpenPdfOptions): Promise<OpenPdfResult> {
+    this.rejectUnderWebView(options);
+
     const token = ++this.openToken;
     await this.closeInternal(false);
 
     const sourceType = options.sourceType ?? inferSourceType(options.source);
     const mode = options.mode ?? 'fullscreen';
+    const showNativeUi = options.nativeUi ?? mode === 'fullscreen';
 
     if (mode === 'inline' && !options.elementId) {
       const message = 'elementId is required when mode is inline';
@@ -42,6 +58,7 @@ export class PdfViewerWeb extends WebPlugin implements PdfViewerPlugin {
       }
       this.revokeUrl = revoke;
       this.page = Math.max(1, options.page ?? 1);
+      this.zoom = 1;
       const url = `${blobUrl}#page=${this.page}`;
 
       const frame = document.createElement('iframe');
@@ -67,45 +84,45 @@ export class PdfViewerWeb extends WebPlugin implements PdfViewerPlugin {
         target.replaceChildren();
         host = target;
         Object.assign(host.style, { position: host.style.position || 'relative', overflow: 'hidden' });
+        host.appendChild(frame);
       } else {
         host = document.createElement('div');
         Object.assign(host.style, {
           position: 'fixed',
           inset: '0',
           zIndex: '2147483646',
-          background: 'rgba(0,0,0,0.92)',
+          background: showNativeUi ? 'rgba(0,0,0,0.92)' : 'transparent',
           display: 'flex',
           flexDirection: 'column',
         });
-        const toolbar = document.createElement('div');
-        Object.assign(toolbar.style, {
-          display: 'flex',
-          justifyContent: 'flex-end',
-          padding: '8px',
-          gap: '8px',
-        });
-        const closeBtn = document.createElement('button');
-        closeBtn.textContent = 'Close';
-        closeBtn.type = 'button';
-        closeBtn.onclick = () => {
-          void this.close();
-        };
-        toolbar.appendChild(closeBtn);
-        const wrap = document.createElement('div');
-        Object.assign(wrap.style, { flex: '1', minHeight: '0' });
-        wrap.appendChild(frame);
-        host.appendChild(toolbar);
-        host.appendChild(wrap);
+        if (showNativeUi) {
+          const toolbar = document.createElement('div');
+          Object.assign(toolbar.style, {
+            display: 'flex',
+            justifyContent: 'flex-end',
+            padding: '8px',
+            gap: '8px',
+          });
+          const closeBtn = document.createElement('button');
+          closeBtn.textContent = 'Close';
+          closeBtn.type = 'button';
+          closeBtn.onclick = () => {
+            void this.close();
+          };
+          toolbar.appendChild(closeBtn);
+          const wrap = document.createElement('div');
+          Object.assign(wrap.style, { flex: '1', minHeight: '0' });
+          wrap.appendChild(frame);
+          host.appendChild(toolbar);
+          host.appendChild(wrap);
+        } else {
+          host.appendChild(frame);
+        }
         document.body.appendChild(host);
-      }
-
-      if (mode === 'inline') {
-        host.appendChild(frame);
       }
 
       this.host = host;
       this.frame = frame;
-      // Browser PDF viewers do not expose pageCount reliably; treat as at least 1.
       this.pageCount = 1;
       const result = { pageCount: this.pageCount, page: this.page };
       this.notifyListeners('load', result);
@@ -117,7 +134,9 @@ export class PdfViewerWeb extends WebPlugin implements PdfViewerPlugin {
         throw superseded;
       }
       const message = error instanceof Error ? error.message : String(error);
-      this.notifyListeners('error', { message });
+      if (!(error as { code?: string }).code) {
+        this.notifyListeners('error', { message });
+      }
       throw error;
     }
   }
@@ -137,9 +156,57 @@ export class PdfViewerWeb extends WebPlugin implements PdfViewerPlugin {
     this.notifyListeners('pageChange', { page: this.page, pageCount: this.pageCount });
   }
 
+  async nextPage(): Promise<void> {
+    await this.goToPage({ page: Math.min(this.pageCount, this.page + 1) });
+  }
+
+  async previousPage(): Promise<void> {
+    await this.goToPage({ page: Math.max(1, this.page - 1) });
+  }
+
   async setZoom(options: SetZoomOptions): Promise<void> {
+    if (!this.frame) {
+      throw new Error('No PDF is open');
+    }
+    this.zoom = options.scale;
+    void this.zoom;
+    this.notifyListeners('zoomChange', { scale: options.scale });
+  }
+
+  async getPageCount(): Promise<PdfPageCountResult> {
+    if (!this.frame) {
+      throw new Error('No PDF is open');
+    }
+    return { pageCount: this.pageCount };
+  }
+
+  async getCurrentPage(): Promise<PdfCurrentPageResult> {
+    if (!this.frame) {
+      throw new Error('No PDF is open');
+    }
+    return { page: this.page };
+  }
+
+  async hide(): Promise<void> {
+    if (!this.host) {
+      throw new Error('No PDF is open');
+    }
+    this.host.style.visibility = 'hidden';
+  }
+
+  async show(): Promise<void> {
+    if (!this.host) {
+      throw new Error('No PDF is open');
+    }
+    this.host.style.visibility = 'visible';
+  }
+
+  async updateLayout(options: PdfLayoutOptions): Promise<void> {
+    if (!this.frame) {
+      throw new Error('No PDF is open');
+    }
     void options;
-    // Browser PDF viewer owns zoom; resolve successfully.
+    throw this.unavailable('updateLayout is only supported on iOS and Android for underWebView / toBack mode.');
   }
 
   async getPluginVersion(): Promise<PluginVersionResult> {

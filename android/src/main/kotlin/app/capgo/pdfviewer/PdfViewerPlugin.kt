@@ -1,6 +1,7 @@
 package app.capgo.pdfviewer
 
 import android.graphics.Color
+import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.ImageButton
@@ -21,6 +22,9 @@ class PdfViewerPlugin : Plugin() {
     private var viewer: PdfViewerView? = null
     private var pageCount = 0
     private var currentPage = 1
+    private var underWebView = false
+    private var layoutCss = LayoutCss()
+    private var webViewVisualState: PdfToBackCompositor.SavedState? = null
 
     override fun load() {
         implementation = PdfViewer(context)
@@ -35,12 +39,16 @@ class PdfViewerPlugin : Plugin() {
         }
 
         val sourceType = PdfViewerHelpers.inferSourceType(source, call.getString("sourceType"))
-        val mode = call.getString("mode") ?: "fullscreen"
+        val toBack = call.getBoolean("toBack", false) == true
+        val modeRaw = call.getString("mode") ?: "fullscreen"
+        val mode = if (toBack || modeRaw == "underWebView") "underWebView" else modeRaw
         val elementId = call.getString("elementId")
         val password = call.getString("password")
         val page = call.getInt("page") ?: 1
         val scrollMode = call.getString("scrollMode") ?: "continuous"
         val headers = stringMap(call.getObject("headers"))
+        val nativeUi = call.getBoolean("nativeUi", mode != "underWebView") == true
+        layoutCss = readLayout(call.getObject("layout"))
 
         if (mode == "inline" && elementId.isNullOrBlank()) {
             val message = "elementId is required when mode is inline"
@@ -54,7 +62,7 @@ class PdfViewerPlugin : Plugin() {
                 val opened = implementation.openDocument(source, sourceType, headers, password)
                 bridge.activity.runOnUiThread {
                     try {
-                        present(opened, mode, elementId, page, scrollMode, call)
+                        present(opened, mode, elementId, page, scrollMode, nativeUi, call)
                     } catch (error: Exception) {
                         opened.close()
                         val message = error.message ?: "Failed to present PDF"
@@ -95,6 +103,30 @@ class PdfViewerPlugin : Plugin() {
     }
 
     @PluginMethod
+    fun nextPage(call: PluginCall) {
+        val active = viewer ?: run {
+            call.reject("No PDF is open")
+            return
+        }
+        bridge.activity.runOnUiThread {
+            active.nextPage()
+            call.resolve()
+        }
+    }
+
+    @PluginMethod
+    fun previousPage(call: PluginCall) {
+        val active = viewer ?: run {
+            call.reject("No PDF is open")
+            return
+        }
+        bridge.activity.runOnUiThread {
+            active.previousPage()
+            call.resolve()
+        }
+    }
+
+    @PluginMethod
     fun setZoom(call: PluginCall) {
         val scale = call.getFloat("scale") ?: 1f
         val active = viewer
@@ -104,6 +136,69 @@ class PdfViewerPlugin : Plugin() {
         }
         bridge.activity.runOnUiThread {
             active.setZoom(scale)
+            call.resolve()
+        }
+    }
+
+    @PluginMethod
+    fun getPageCount(call: PluginCall) {
+        if (viewer == null) {
+            call.reject("No PDF is open")
+            return
+        }
+        call.resolve(JSObject().put("pageCount", pageCount))
+    }
+
+    @PluginMethod
+    fun getCurrentPage(call: PluginCall) {
+        val active = viewer
+        if (active == null) {
+            call.reject("No PDF is open")
+            return
+        }
+        call.resolve(JSObject().put("page", active.currentOneBasedPage()))
+    }
+
+    @PluginMethod
+    fun hide(call: PluginCall) {
+        val container = host
+        if (container == null) {
+            call.reject("No PDF is open")
+            return
+        }
+        bridge.activity.runOnUiThread {
+            container.visibility = View.INVISIBLE
+            call.resolve()
+        }
+    }
+
+    @PluginMethod
+    fun show(call: PluginCall) {
+        val container = host
+        if (container == null) {
+            call.reject("No PDF is open")
+            return
+        }
+        bridge.activity.runOnUiThread {
+            container.visibility = View.VISIBLE
+            call.resolve()
+        }
+    }
+
+    @PluginMethod
+    fun updateLayout(call: PluginCall) {
+        if (!underWebView) {
+            call.reject("updateLayout is only supported in underWebView / toBack mode")
+            return
+        }
+        layoutCss = readLayout(call.data)
+        val container = host
+        if (container == null) {
+            call.reject("No PDF is open")
+            return
+        }
+        bridge.activity.runOnUiThread {
+            applyUnderWebViewLayout(container)
             call.resolve()
         }
     }
@@ -120,6 +215,7 @@ class PdfViewerPlugin : Plugin() {
         elementId: String?,
         page: Int,
         scrollMode: String,
+        nativeUi: Boolean,
         call: PluginCall,
     ) {
         dismiss(emitClose = false)
@@ -129,6 +225,7 @@ class PdfViewerPlugin : Plugin() {
             PdfViewerHelpers.pageIndex(page, pageCount),
             pageCount,
         )
+        underWebView = mode == "underWebView"
 
         val pdfView = PdfViewerView(context)
         pdfView.listener = object : PdfViewerView.Listener {
@@ -143,10 +240,14 @@ class PdfViewerPlugin : Plugin() {
             override fun onLinkTapped(url: String) {
                 notifyListeners("linkTap", JSObject().put("url", url))
             }
+
+            override fun onZoomChanged(scale: Float) {
+                notifyListeners("zoomChange", JSObject().put("scale", scale.toDouble()))
+            }
         }
 
         val container = FrameLayout(context)
-        container.setBackgroundColor(Color.BLACK)
+        container.setBackgroundColor(if (underWebView) Color.TRANSPARENT else Color.BLACK)
         container.addView(
             pdfView,
             FrameLayout.LayoutParams(
@@ -155,7 +256,7 @@ class PdfViewerPlugin : Plugin() {
             ),
         )
 
-        if (mode != "inline") {
+        if (mode == "fullscreen" && nativeUi) {
             val close = ImageButton(context)
             close.setImageResource(android.R.drawable.ic_menu_close_clear_cancel)
             close.setBackgroundColor(Color.TRANSPARENT)
@@ -183,12 +284,17 @@ class PdfViewerPlugin : Plugin() {
                     call.reject(message)
                     return@measureElement
                 }
-                attachHost(container, rect)
+                attachHost(container, rect, behindWebView = false)
                 pdfView.bind(opened, scrollMode != "single", page)
                 finishOpen(call)
             }
+        } else if (underWebView) {
+            applyUnderWebViewVisualState()
+            attachHost(container, null, behindWebView = true)
+            pdfView.bind(opened, scrollMode != "single", page)
+            finishOpen(call)
         } else {
-            attachHost(container, null)
+            attachHost(container, null, behindWebView = false)
             pdfView.bind(opened, scrollMode != "single", page)
             finishOpen(call)
         }
@@ -199,11 +305,16 @@ class PdfViewerPlugin : Plugin() {
             .put("pageCount", pageCount)
             .put("page", currentPage)
         notifyListeners("load", payload)
+        notifyListeners(
+            "zoomChange",
+            JSObject().put("scale", (viewer?.currentZoom() ?: 1f).toDouble()),
+        )
         call.resolve(payload)
     }
 
-    private fun attachHost(container: FrameLayout, rect: IntArray?) {
-        val parent = bridge.webView.parent as ViewGroup
+    private fun attachHost(container: FrameLayout, rect: IntArray?, behindWebView: Boolean) {
+        val webView = bridge.webView
+        val parent = webView.parent as ViewGroup
         val params = if (rect == null) {
             FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -215,7 +326,39 @@ class PdfViewerPlugin : Plugin() {
                 topMargin = rect[1]
             }
         }
-        parent.addView(container, params)
+        if (behindWebView) {
+            val index = parent.indexOfChild(webView)
+            parent.addView(container, index, params)
+            applyUnderWebViewLayout(container)
+        } else {
+            parent.addView(container, params)
+        }
+    }
+
+    private fun applyUnderWebViewLayout(container: FrameLayout) {
+        val webView = bridge.webView
+        val parent = container.parent as? ViewGroup ?: return
+        val density = resources.displayMetrics.density
+        val widthPx = layoutCss.width?.let { (it * density).toInt() } ?: webView.width
+        val heightPx = layoutCss.height?.let { (it * density).toInt() } ?: webView.height
+        val left = layoutCss.x?.let { (it * density).toInt() + webView.left } ?: webView.left
+        val top = layoutCss.y?.let { (it * density).toInt() + webView.top } ?: webView.top
+        val lp = (container.layoutParams as? ViewGroup.MarginLayoutParams)
+            ?: FrameLayout.LayoutParams(widthPx, heightPx)
+        lp.width = widthPx
+        lp.height = heightPx
+        lp.leftMargin = left - parent.left
+        lp.topMargin = top - parent.top
+        container.layoutParams = lp
+    }
+
+    private fun applyUnderWebViewVisualState() {
+        val webView = bridge.webView
+        val parent = webView.parent as? ViewGroup
+        if (webViewVisualState == null) {
+            webViewVisualState = PdfToBackCompositor.capture(webView, parent)
+        }
+        PdfToBackCompositor.apply(webView, parent)
     }
 
     private fun measureElement(elementId: String, completion: (IntArray?) -> Unit) {
@@ -260,10 +403,33 @@ class PdfViewerPlugin : Plugin() {
         host = null
         document?.close()
         document = null
+        underWebView = false
+        if (webViewVisualState != null) {
+            val webView = bridge.webView
+            PdfToBackCompositor.restore(webView, webView.parent as? ViewGroup, webViewVisualState)
+            webViewVisualState = null
+        }
         if (emitClose) {
             notifyListeners("close", JSObject())
         }
     }
+
+    private fun readLayout(obj: JSObject?): LayoutCss {
+        if (obj == null) return LayoutCss()
+        return LayoutCss(
+            x = obj.getDouble("x"),
+            y = obj.getDouble("y"),
+            width = obj.getDouble("width"),
+            height = obj.getDouble("height"),
+        )
+    }
+
+    private data class LayoutCss(
+        val x: Double? = null,
+        val y: Double? = null,
+        val width: Double? = null,
+        val height: Double? = null,
+    )
 
     private fun stringMap(obj: JSObject?): Map<String, String>? {
         if (obj == null) return null

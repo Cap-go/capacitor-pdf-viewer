@@ -15,9 +15,10 @@
 - Optional `headers` when downloading remote URLs (auth tokens, cookies)
 - Password support for encrypted PDFs on iOS and Android
 - Fullscreen overlay or **inline** mode anchored to a DOM element (`elementId`)
+- **underWebView** / **`toBack`**: native PDF behind a transparent WebView with your HTML controls on top
 - Continuous vertical scrolling or single-page mode
-- Programmatic **goToPage**, **setZoom**, and **close**
-- Events: `load`, `pageChange`, `error`, `close`, `linkTap`
+- Programmatic **goToPage**, **nextPage**, **previousPage**, **setZoom**, **hide**, **show**, **updateLayout**, and **close**
+- Events: `load`, `pageChange`, `zoomChange`, `error`, `close`, `linkTap`
 
 ## Use cases
 
@@ -31,6 +32,11 @@
 - [Plugin docs](https://capgo.app/docs/plugins/pdf-viewer/) on capgo.app
 - [Tutorial](https://capgo.app/plugins/capacitor-pdf-viewer/) with install steps and examples
 - [Capgo](https://capgo.app/) for live updates, native builds, and plugin support
+
+<p align="center">
+  <img src="./screenshots/android-under-webview.webp" alt="Android custom HTML toolbar over native PDF" width="280" />
+  <img src="./screenshots/ios-under-webview.webp" alt="iOS custom HTML toolbar over native PDF" width="280" />
+</p>
 
 <p align="center">
   <img src="./screenshots/android-demo.webp" alt="Android emulator showing the example PDF open on two pages" width="280" />
@@ -127,6 +133,86 @@ await PdfViewer.open({
 
 On native shells, loading a PDF from the WebView origin URL often fails because that origin is not a real file server. Fetch the bytes in JavaScript and pass `sourceType: 'base64'` instead (see `example-app/`).
 
+## Build your own PDF viewer UI
+
+Use **`mode: 'underWebView'`** (or **`toBack: true`**) when you want PDFKit / Pdfium rendering with **zero native chrome**. The PDF sits **behind** your Capacitor WebView. You draw buttons, page indicators, and toolbars in HTML while the native layer handles scroll, pinch zoom, and link hit testing through transparent areas.
+
+**Why:** Full control over branding and UX (Ionic, Tailwind, or plain HTML) without reimplementing PDF rendering in JavaScript.
+
+**Setup:** Make the WebView stack transparent so the PDF shows through (same idea as [`@capgo/camera-preview`](https://github.com/Cap-go/capacitor-camera-preview)):
+
+```css
+html,
+body {
+  background: transparent !important;
+}
+
+/* Let touches reach the PDF except on your controls */
+body.pdf-reading {
+  pointer-events: none;
+}
+
+.pdf-toolbar,
+.pdf-toolbar button {
+  pointer-events: auto;
+}
+```
+
+On Android the plugin also enables transparent compositing on the WebView parent. Keep control surfaces opaque so they still receive taps.
+
+**Example (custom toolbar):**
+
+```html
+<div class="pdf-toolbar">
+  <button type="button" id="prev">Prev</button>
+  <span id="pageLabel">1 / 1</span>
+  <button type="button" id="next">Next</button>
+  <button type="button" id="zoomOut">−</button>
+  <button type="button" id="zoomIn">+</button>
+  <button type="button" id="closePdf">Close</button>
+</div>
+```
+
+```typescript
+import { PdfViewer } from '@capgo/capacitor-pdf-viewer';
+
+document.body.classList.add('pdf-reading');
+
+await PdfViewer.addListener('pageChange', ({ page, pageCount }) => {
+  document.getElementById('pageLabel').textContent = `${page} / ${pageCount}`;
+});
+
+await PdfViewer.addListener('zoomChange', ({ scale }) => {
+  console.log('zoom', scale);
+});
+
+await PdfViewer.open({
+  source: pdfBase64,
+  sourceType: 'base64',
+  mode: 'underWebView',
+  toBack: true,
+  nativeUi: false,
+  scrollMode: 'continuous',
+});
+
+document.getElementById('prev').onclick = () => PdfViewer.previousPage();
+document.getElementById('next').onclick = () => PdfViewer.nextPage();
+document.getElementById('zoomIn').onclick = async () => {
+  await PdfViewer.setZoom({ scale: 1.25 });
+};
+document.getElementById('closePdf').onclick = () => PdfViewer.close();
+```
+
+Optional **`layout`** (CSS pixels relative to the WebView viewport) or call **`updateLayout()`** after rotation:
+
+```typescript
+await PdfViewer.updateLayout({ x: 0, y: 0, width: 360, height: 640 });
+```
+
+**Web:** `underWebView` / `toBack` is not available in the browser implementation. Use fullscreen or inline on web, or test custom UI on iOS/Android.
+
+See **`example-app/`** (button **Custom UI (toBack)**) for a working demo.
+
 ## API
 
 <docgen-index>
@@ -134,10 +220,18 @@ On native shells, loading a PDF from the WebView origin URL often fails because 
 * [`open(...)`](#open)
 * [`close()`](#close)
 * [`goToPage(...)`](#gotopage)
+* [`nextPage()`](#nextpage)
+* [`previousPage()`](#previouspage)
 * [`setZoom(...)`](#setzoom)
+* [`getPageCount()`](#getpagecount)
+* [`getCurrentPage()`](#getcurrentpage)
+* [`hide()`](#hide)
+* [`show()`](#show)
+* [`updateLayout(...)`](#updatelayout)
 * [`getPluginVersion()`](#getpluginversion)
 * [`addListener('load', ...)`](#addlistenerload-)
 * [`addListener('pageChange', ...)`](#addlistenerpagechange-)
+* [`addListener('zoomChange', ...)`](#addlistenerzoomchange-)
 * [`addListener('error', ...)`](#addlistenererror-)
 * [`addListener('close', ...)`](#addlistenerclose-)
 * [`addListener('linkTap', ...)`](#addlistenerlinktap-)
@@ -200,6 +294,32 @@ Jump to a 1-based page number in the open document.
 --------------------
 
 
+### nextPage()
+
+```typescript
+nextPage() => Promise<void>
+```
+
+Move to the next page when one exists.
+
+**Since:** 8.0.0
+
+--------------------
+
+
+### previousPage()
+
+```typescript
+previousPage() => Promise<void>
+```
+
+Move to the previous page when one exists.
+
+**Since:** 8.0.0
+
+--------------------
+
+
 ### setZoom(...)
 
 ```typescript
@@ -207,11 +327,84 @@ setZoom(options: SetZoomOptions) => Promise<void>
 ```
 
 Set the zoom scale multiplier (`1` is the default fit scale on native).
-On web this resolves without changing the browser viewer zoom.
+On web this resolves without changing the browser viewer zoom unless `toBack` mode is active.
 
 | Param         | Type                                                      |
 | ------------- | --------------------------------------------------------- |
 | **`options`** | <code><a href="#setzoomoptions">SetZoomOptions</a></code> |
+
+**Since:** 8.0.0
+
+--------------------
+
+
+### getPageCount()
+
+```typescript
+getPageCount() => Promise<PdfPageCountResult>
+```
+
+Read the total page count of the open document.
+
+**Returns:** <code>Promise&lt;<a href="#pdfpagecountresult">PdfPageCountResult</a>&gt;</code>
+
+**Since:** 8.0.0
+
+--------------------
+
+
+### getCurrentPage()
+
+```typescript
+getCurrentPage() => Promise<PdfCurrentPageResult>
+```
+
+Read the current 1-based page index.
+
+**Returns:** <code>Promise&lt;<a href="#pdfcurrentpageresult">PdfCurrentPageResult</a>&gt;</code>
+
+**Since:** 8.0.0
+
+--------------------
+
+
+### hide()
+
+```typescript
+hide() => Promise<void>
+```
+
+Hide the native PDF layer without unloading the document.
+
+**Since:** 8.0.0
+
+--------------------
+
+
+### show()
+
+```typescript
+show() => Promise<void>
+```
+
+Show the native PDF layer after `hide()`.
+
+**Since:** 8.0.0
+
+--------------------
+
+
+### updateLayout(...)
+
+```typescript
+updateLayout(options: PdfLayoutOptions) => Promise<void>
+```
+
+Reposition or resize the native PDF when using `underWebView` / `toBack`.
+
+| Param         | Type                                                          |
+| ------------- | ------------------------------------------------------------- |
+| **`options`** | <code><a href="#pdflayoutoptions">PdfLayoutOptions</a></code> |
 
 **Since:** 8.0.0
 
@@ -265,6 +458,26 @@ Listen for page changes while the user scrolls or when {@link PdfViewerPlugin.go
 | ------------------ | ------------------------------------------------------------------------------------- |
 | **`eventName`**    | <code>'pageChange'</code>                                                             |
 | **`listenerFunc`** | <code>(event: <a href="#pdfpagechangeevent">PdfPageChangeEvent</a>) =&gt; void</code> |
+
+**Returns:** <code>Promise&lt;<a href="#pluginlistenerhandle">PluginListenerHandle</a>&gt;</code>
+
+**Since:** 8.0.0
+
+--------------------
+
+
+### addListener('zoomChange', ...)
+
+```typescript
+addListener(eventName: 'zoomChange', listenerFunc: (event: PdfZoomChangeEvent) => void) => Promise<PluginListenerHandle>
+```
+
+Listen for zoom changes from pinch gestures or {@link PdfViewerPlugin.setZoom}.
+
+| Param              | Type                                                                                  |
+| ------------------ | ------------------------------------------------------------------------------------- |
+| **`eventName`**    | <code>'zoomChange'</code>                                                             |
+| **`listenerFunc`** | <code>(event: <a href="#pdfzoomchangeevent">PdfZoomChangeEvent</a>) =&gt; void</code> |
 
 **Returns:** <code>Promise&lt;<a href="#pluginlistenerhandle">PluginListenerHandle</a>&gt;</code>
 
@@ -357,9 +570,25 @@ Options for {@link PdfViewerPlugin.open}.
 | **`headers`**    | <code><a href="#record">Record</a>&lt;string, string&gt;</code> | HTTP headers used when downloading an https `url` source (for example auth tokens).                                                                                                                               |                           | 8.0.0 |
 | **`password`**   | <code>string</code>                                             | Password for encrypted PDFs on iOS and Android. On web the password cannot be injected into the browser viewer; the browser may still prompt.                                                                     |                           | 8.0.0 |
 | **`mode`**       | <code><a href="#pdfdisplaymode">PdfDisplayMode</a></code>       | How to present the viewer.                                                                                                                                                                                        | <code>'fullscreen'</code> | 8.0.0 |
+| **`toBack`**     | <code>boolean</code>                                            | Shorthand for `mode: 'underWebView'`. When true, the native PDF is placed behind a transparent WebView so your HTML controls sit on top. Implies `nativeUi: false`.                                               | <code>false</code>        | 8.0.0 |
+| **`nativeUi`**   | <code>boolean</code>                                            | When false, hides all native chrome (close button, toolbars). Defaults to false when `toBack` or `mode` is `underWebView`, otherwise true for fullscreen.                                                         |                           | 8.0.0 |
+| **`layout`**     | <code><a href="#pdflayoutoptions">PdfLayoutOptions</a></code>   | Layout for `underWebView` / `toBack`. Ignored for inline and classic fullscreen overlay.                                                                                                                          |                           | 8.0.0 |
 | **`elementId`**  | <code>string</code>                                             | DOM element id used when `mode` is `inline`. Native code measures this element and places the viewer over it.                                                                                                     |                           | 8.0.0 |
 | **`page`**       | <code>number</code>                                             | Initial page, 1-based.                                                                                                                                                                                            |                           | 8.0.0 |
 | **`scrollMode`** | <code><a href="#pdfscrollmode">PdfScrollMode</a></code>         | Scroll behavior inside the viewer.                                                                                                                                                                                | <code>'continuous'</code> | 8.0.0 |
+
+
+#### PdfLayoutOptions
+
+Layout rectangle for `underWebView` / `toBack` presentation, in CSS pixels relative to the WebView viewport.
+Omit width and height to fill the WebView bounds.
+
+| Prop         | Type                | Description                                                              |
+| ------------ | ------------------- | ------------------------------------------------------------------------ |
+| **`x`**      | <code>number</code> | Horizontal origin in CSS pixels from the WebView viewport left edge.     |
+| **`y`**      | <code>number</code> | Vertical origin in CSS pixels from the WebView viewport top edge.        |
+| **`width`**  | <code>number</code> | Width in CSS pixels. When omitted with height, fills the WebView width.  |
+| **`height`** | <code>number</code> | Height in CSS pixels. When omitted with width, fills the WebView height. |
 
 
 #### GoToPageOptions
@@ -378,6 +607,24 @@ Options for {@link PdfViewerPlugin.setZoom}.
 | Prop        | Type                | Description                                              |
 | ----------- | ------------------- | -------------------------------------------------------- |
 | **`scale`** | <code>number</code> | Zoom multiplier. `1` is the default fit scale on native. |
+
+
+#### PdfPageCountResult
+
+Page count payload.
+
+| Prop            | Type                | Description            |
+| --------------- | ------------------- | ---------------------- |
+| **`pageCount`** | <code>number</code> | Total number of pages. |
+
+
+#### PdfCurrentPageResult
+
+Current page payload.
+
+| Prop       | Type                | Description            |
+| ---------- | ------------------- | ---------------------- |
+| **`page`** | <code>number</code> | Current page, 1-based. |
 
 
 #### PluginVersionResult
@@ -414,6 +661,15 @@ Payload for the `pageChange` event.
 | --------------- | ------------------- | ---------------------- |
 | **`page`**      | <code>number</code> | Current page, 1-based. |
 | **`pageCount`** | <code>number</code> | Total number of pages. |
+
+
+#### PdfZoomChangeEvent
+
+Payload for the `zoomChange` event.
+
+| Prop        | Type                | Description                                                               |
+| ----------- | ------------------- | ------------------------------------------------------------------------- |
+| **`scale`** | <code>number</code> | Zoom multiplier relative to the fit default (`1` is width fit on native). |
 
 
 #### PdfErrorEvent
@@ -458,8 +714,9 @@ Presentation mode for the viewer.
 
 - `fullscreen`: covers the app with a native or browser overlay.
 - `inline`: places the viewer over a DOM element identified by `elementId`.
+- `underWebView`: native PDF behind a transparent WebView (see `toBack`); use HTML for chrome.
 
-<code>'fullscreen' | 'inline'</code>
+<code>'fullscreen' | 'inline' | 'underWebView'</code>
 
 
 #### PdfScrollMode
