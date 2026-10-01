@@ -39,8 +39,10 @@ const refreshCustomIndicator = () => {
 };
 
 const setCustomUiVisible = (visible) => {
+  document.documentElement.classList.toggle('custom-pdf-active', visible);
   document.body.classList.toggle('custom-pdf-active', visible);
   document.documentElement.style.background = visible ? 'transparent' : '';
+  document.body.style.background = visible ? 'transparent' : '';
   const shell = document.getElementById('demo-shell');
   if (shell) {
     shell.hidden = visible;
@@ -92,6 +94,10 @@ const shouldAutoOpenCustomUi =
     new URLSearchParams(window.location.search).get('demo') === 'custom-ui');
 
 if (shouldAutoOpenCustomUi) {
+  if (import.meta.env.VITE_CAPTURE_CUSTOM_UI === 'true') {
+    document.documentElement.classList.add('custom-pdf-capture-ready');
+    setCustomUiVisible(true);
+  }
   window.setTimeout(() => {
     document.getElementById('open-custom-ui')?.click();
   }, 1200);

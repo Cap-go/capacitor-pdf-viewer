@@ -128,8 +128,34 @@ pre#plugin-output {
 }
 
 body.custom-pdf-active,
-body.custom-pdf-active #demo-shell {
+html.custom-pdf-active,
+html.custom-pdf-capture-ready,
+html.custom-pdf-capture-ready body {
   background: transparent !important;
+  background-image: none !important;
+}
+
+html.custom-pdf-active,
+html.custom-pdf-capture-ready {
+  padding: 0 !important;
+}
+
+body.custom-pdf-active,
+html.custom-pdf-capture-ready body {
+  margin: 0;
+  padding: 0 !important;
+  min-height: 100vh;
+  display: block !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+}
+
+body.custom-pdf-active #demo-shell,
+html.custom-pdf-capture-ready #demo-shell {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 
 body.custom-pdf-active main.container {
@@ -140,6 +166,10 @@ body.custom-pdf-active main.container {
 
 body.custom-pdf-active .custom-toolbar {
   pointer-events: auto;
+}
+
+.custom-pdf-ui:not([hidden]) {
+  background: transparent;
 }
 
 .custom-pdf-ui {

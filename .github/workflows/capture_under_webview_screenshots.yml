@@ -2,6 +2,12 @@ name: Capture under-webview screenshots
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - cursor/under-webview-pdf-mode-6c33
+    paths:
+      - .github/workflows/capture_under_webview_screenshots.yml
+      - example-app/**
 
 jobs:
   android_build:
@@ -83,7 +89,7 @@ jobs:
             set -eu
             adb install -r "$GITHUB_WORKSPACE/capture-out/app-debug.apk"
             adb shell am start -n app.capgo.pdfviewer/.MainActivity
-            sleep 20
+            sleep 25
             adb exec-out screencap -p > "$GITHUB_WORKSPACE/capture-out/android-under-webview-raw.png"
       - name: Upload Android screenshot
         uses: actions/upload-artifact@v4
@@ -148,7 +154,7 @@ jobs:
 
           xcrun simctl install "$UDID" "$APP_PATH"
           xcrun simctl launch "$UDID" app.capgo.pdfviewer
-          sleep 18
+          sleep 22
 
           mkdir -p "$GITHUB_WORKSPACE/capture-out"
           xcrun simctl io "$UDID" screenshot "$GITHUB_WORKSPACE/capture-out/ios-under-webview-raw.png"
