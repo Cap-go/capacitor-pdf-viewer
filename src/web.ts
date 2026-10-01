@@ -16,8 +16,10 @@ export class PdfViewerWeb extends WebPlugin implements PdfViewerPlugin {
   private revokeUrl: (() => void) | null = null;
   private page = 1;
   private pageCount = 1;
+  private openToken = 0;
 
   async open(options: OpenPdfOptions): Promise<OpenPdfResult> {
+    const token = ++this.openToken;
     await this.closeInternal(false);
 
     const sourceType = options.sourceType ?? inferSourceType(options.source);
@@ -31,6 +33,10 @@ export class PdfViewerWeb extends WebPlugin implements PdfViewerPlugin {
 
     try {
       const { blobUrl, revoke } = await sourceToBlobUrl(options.source, sourceType, options.headers);
+      if (token !== this.openToken) {
+        revoke();
+        throw new Error('PDF open was superseded');
+      }
       this.revokeUrl = revoke;
       this.page = Math.max(1, options.page ?? 1);
       const url = `${blobUrl}#page=${this.page}`;
@@ -109,6 +115,7 @@ export class PdfViewerWeb extends WebPlugin implements PdfViewerPlugin {
   }
 
   async close(): Promise<void> {
+    this.openToken += 1;
     await this.closeInternal(true);
   }
 

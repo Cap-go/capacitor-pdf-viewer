@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "skipLibCheck": true,
+    "types": ["bun"]
+  },
+  "include": [
+    "src/**/*.test.ts",
+    "src/test-dom-setup.ts",
+    "src/web.ts",
+    "src/source-utils.ts",
+    "src/definitions.ts",
+    "src/test-fixtures.ts",
+    "src/test-fetch.ts"
+  ]
+}

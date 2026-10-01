@@ -1,9 +1,8 @@
 import { afterEach, describe, expect, it } from 'bun:test';
 
+import { mockFetch } from './test-fetch';
+import { SAMPLE_PDF_BASE64 } from './test-fixtures';
 import { PdfViewerWeb } from './web';
-
-const MINIMAL_PDF_BASE64 =
-  'JVBERi0xLjQKJeLjz9MKMSAwIG9iago8PC9UeXBlL0NhdGFsb2cvUGFnZXMgMiAwIFI+PgplbmRvYmoKMiAwIG9iago8PC9UeXBlL1BhZ2VzL0tpZHMgWzMgMCBSXS9Db3VudCAxPj4KZW5kb2JqCjMgMCBvYmoKPDwvVHlwZS9QYWdlL01lZGlhQm94IFswIDAgNjEyIDc5Ml0+PgplbmRvYmoKc3RyZWFtCmVuZG9iago0IDAgb2JqCjw8L1NpemUgND4+CnRyYWlsZXIKPDwvUm9vdCAxIDAgUj4+CnN0YXJ0eHJlZgoxOTQKJSVFT0YK';
 
 describe('PdfViewerWeb', () => {
   const viewer = new PdfViewerWeb();
@@ -18,19 +17,19 @@ describe('PdfViewerWeb', () => {
   });
 
   it('requires elementId for inline mode', async () => {
-    await expect(viewer.open({ source: MINIMAL_PDF_BASE64, sourceType: 'base64', mode: 'inline' })).rejects.toThrow(
+    await expect(viewer.open({ source: SAMPLE_PDF_BASE64, sourceType: 'base64', mode: 'inline' })).rejects.toThrow(
       'elementId is required when mode is inline',
     );
   });
 
   it('opens url sources with forwarded headers', async () => {
-    const pdfBytes = Uint8Array.from(atob(MINIMAL_PDF_BASE64), (char) => char.charCodeAt(0));
+    const pdfBytes = Uint8Array.from(atob(SAMPLE_PDF_BASE64), (char) => char.charCodeAt(0));
     const originalFetch = globalThis.fetch;
     let seenHeaders: HeadersInit | undefined;
-    globalThis.fetch = async (_input, init) => {
+    globalThis.fetch = mockFetch(async (_input, init) => {
       seenHeaders = init?.headers;
       return new Response(pdfBytes, { status: 200, headers: { 'Content-Type': 'application/pdf' } });
-    };
+    });
     try {
       await viewer.open({
         source: 'https://example.com/doc.pdf',
@@ -47,7 +46,7 @@ describe('PdfViewerWeb', () => {
 
   it('rejects failed url downloads', async () => {
     const originalFetch = globalThis.fetch;
-    globalThis.fetch = async () => new Response('', { status: 404 });
+    globalThis.fetch = mockFetch(async () => new Response('', { status: 404 }));
     try {
       await expect(
         viewer.open({ source: 'https://example.com/missing.pdf', sourceType: 'url', mode: 'fullscreen' }),
@@ -67,7 +66,7 @@ describe('PdfViewerWeb', () => {
       revoked.push(url);
       originalRevoke(url);
     };
-    globalThis.fetch = async () => new Response(new Uint8Array([1, 2, 3]), { status: 200 });
+    globalThis.fetch = mockFetch(async () => new Response(new Uint8Array([1, 2, 3]), { status: 200 }));
     try {
       await viewer.open({
         source: 'https://example.com/a.pdf',
@@ -85,7 +84,7 @@ describe('PdfViewerWeb', () => {
 
   it('opens fullscreen base64 PDFs and closes cleanly', async () => {
     const result = await viewer.open({
-      source: MINIMAL_PDF_BASE64,
+      source: SAMPLE_PDF_BASE64,
       sourceType: 'base64',
       mode: 'fullscreen',
     });
@@ -102,7 +101,7 @@ describe('PdfViewerWeb', () => {
 
   it('updates iframe hash on goToPage', async () => {
     await viewer.open({
-      source: MINIMAL_PDF_BASE64,
+      source: SAMPLE_PDF_BASE64,
       sourceType: 'base64',
       mode: 'fullscreen',
       page: 1,
@@ -114,7 +113,7 @@ describe('PdfViewerWeb', () => {
 
   it('resolves setZoom without throwing on web', async () => {
     await viewer.open({
-      source: MINIMAL_PDF_BASE64,
+      source: SAMPLE_PDF_BASE64,
       sourceType: 'base64',
       mode: 'fullscreen',
     });
