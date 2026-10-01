@@ -1,5 +1,8 @@
 export type PdfSourceKind = 'file' | 'path' | 'url' | 'base64';
 
+/**
+ * Infer how a PDF `source` string should be interpreted when the caller omits `sourceType`.
+ */
 export function inferSourceType(source: string): PdfSourceKind {
   const trimmed = source.trim();
   if (trimmed.toLowerCase().startsWith('data:')) {
@@ -14,11 +17,17 @@ export function inferSourceType(source: string): PdfSourceKind {
   return 'file';
 }
 
+/**
+ * Heuristic check for raw base64 payloads (not `data:` URIs).
+ */
 export function looksLikeBase64(value: string): boolean {
   const compact = value.replace(/\s+/g, '');
   return compact.length > 32 && /^[A-Za-z0-9+/=]+$/.test(compact);
 }
 
+/**
+ * Resolve a PDF source to a browser blob URL. Call `revoke` when the viewer closes.
+ */
 export async function sourceToBlobUrl(
   source: string,
   sourceType: PdfSourceKind,

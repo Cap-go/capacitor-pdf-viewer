@@ -23,6 +23,66 @@ describe('PdfViewerWeb', () => {
     );
   });
 
+  it('opens url sources with forwarded headers', async () => {
+    const pdfBytes = Uint8Array.from(atob(MINIMAL_PDF_BASE64), (char) => char.charCodeAt(0));
+    const originalFetch = globalThis.fetch;
+    let seenHeaders: HeadersInit | undefined;
+    globalThis.fetch = async (_input, init) => {
+      seenHeaders = init?.headers;
+      return new Response(pdfBytes, { status: 200, headers: { 'Content-Type': 'application/pdf' } });
+    };
+    try {
+      await viewer.open({
+        source: 'https://example.com/doc.pdf',
+        sourceType: 'url',
+        headers: { Authorization: 'Bearer test' },
+        mode: 'fullscreen',
+      });
+      expect(seenHeaders).toEqual({ Authorization: 'Bearer test' });
+      expect(document.querySelector('iframe[title="PDF Viewer"]')).not.toBeNull();
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('rejects failed url downloads', async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async () => new Response('', { status: 404 });
+    try {
+      await expect(
+        viewer.open({ source: 'https://example.com/missing.pdf', sourceType: 'url', mode: 'fullscreen' }),
+      ).rejects.toThrow('Failed to download PDF (404)');
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('revokes blob urls after closing url sources', async () => {
+    const revoked: string[] = [];
+    const originalCreate = URL.createObjectURL.bind(URL);
+    const originalRevoke = URL.revokeObjectURL.bind(URL);
+    const originalFetch = globalThis.fetch;
+    URL.createObjectURL = () => 'blob:test-revoke';
+    URL.revokeObjectURL = (url) => {
+      revoked.push(url);
+      originalRevoke(url);
+    };
+    globalThis.fetch = async () => new Response(new Uint8Array([1, 2, 3]), { status: 200 });
+    try {
+      await viewer.open({
+        source: 'https://example.com/a.pdf',
+        sourceType: 'url',
+        mode: 'fullscreen',
+      });
+      await viewer.close();
+      expect(revoked).toContain('blob:test-revoke');
+    } finally {
+      globalThis.fetch = originalFetch;
+      URL.createObjectURL = originalCreate;
+      URL.revokeObjectURL = originalRevoke;
+    }
+  });
+
   it('opens fullscreen base64 PDFs and closes cleanly', async () => {
     const result = await viewer.open({
       source: MINIMAL_PDF_BASE64,
