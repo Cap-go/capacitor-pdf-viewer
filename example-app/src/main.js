@@ -87,7 +87,8 @@ void wireEvents();
 
 const shouldAutoOpenCustomUi =
   Capacitor.isNativePlatform() &&
-  (window.location.hash === '#custom-ui' ||
+  (import.meta.env.VITE_CAPTURE_CUSTOM_UI === 'true' ||
+    window.location.hash === '#custom-ui' ||
     new URLSearchParams(window.location.search).get('demo') === 'custom-ui');
 
 if (shouldAutoOpenCustomUi) {

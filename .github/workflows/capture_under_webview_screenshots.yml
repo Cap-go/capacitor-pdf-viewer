@@ -12,6 +12,10 @@ jobs:
   android_build:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      ANDROID_USER_HOME: /home/runner/.android
+      ANDROID_EMULATOR_HOME: /home/runner/.android
+      ANDROID_AVD_HOME: /home/runner/.android/avd
     steps:
       - name: Check out
         uses: actions/checkout@v7
@@ -32,7 +36,9 @@ jobs:
           set -euo pipefail
           bun i
           bash ./.github/scripts/verify-packed-example.sh android
-          cd "$RUNNER_TEMP/plugin-example-app"
+          EXAMPLE="$RUNNER_TEMP/plugin-example-app"
+          cd "$EXAMPLE"
+          VITE_CAPTURE_CUSTOM_UI=true bun run build
           bunx cap sync android
           cd android
           ./gradlew assembleDebug
@@ -48,6 +54,10 @@ jobs:
     needs: android_build
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      ANDROID_USER_HOME: /home/runner/.android
+      ANDROID_EMULATOR_HOME: /home/runner/.android
+      ANDROID_AVD_HOME: /home/runner/.android/avd
     steps:
       - name: Download debug APK
         uses: actions/download-artifact@v4
@@ -58,7 +68,8 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo apt-get install -y libpulse0
+          sudo apt-get install -y libpulse0 libxcb-cursor0 libxcb1 libxdamage1 libxi6 libxtst6
+          mkdir -p "$ANDROID_AVD_HOME"
       - name: Enable KVM for emulator
         run: |
           set -euo pipefail
@@ -72,13 +83,11 @@ jobs:
           target: google_apis
           arch: x86_64
           profile: pixel_6
-          emulator-options: -no-snapshot-save -no-snapshot-load -gpu swiftshader_indirect
+          emulator-options: -no-window -no-audio -no-snapshot-save -no-snapshot-load -gpu swiftshader_indirect
           script: |
             set -eu
             adb install -r "$GITHUB_WORKSPACE/capture-out/app-debug.apk"
-            adb shell am start -a android.intent.action.VIEW \
-              -d "capacitor://localhost?demo=custom-ui" \
-              -n app.capgo.pdfviewer/.MainActivity
+            adb shell am start -n app.capgo.pdfviewer/.MainActivity
             sleep 20
             adb exec-out screencap -p > "$GITHUB_WORKSPACE/capture-out/android-under-webview-raw.png"
       - name: Upload Android screenshot
@@ -107,6 +116,7 @@ jobs:
           bash ./.github/scripts/verify-packed-example.sh ios
           EXAMPLE="$RUNNER_TEMP/plugin-example-app"
           cd "$EXAMPLE"
+          VITE_CAPTURE_CUSTOM_UI=true bun run build
           bunx cap sync ios
 
           UDID=$(xcrun simctl list devices available -j | jq -r '
@@ -143,10 +153,7 @@ jobs:
 
           xcrun simctl install "$UDID" "$APP_PATH"
           xcrun simctl launch "$UDID" app.capgo.pdfviewer
-          sleep 3
-          xcrun simctl openurl "$UDID" 'capacitor://localhost?demo=custom-ui' || \
-            xcrun simctl openurl "$UDID" 'http://localhost/?demo=custom-ui'
-          sleep 15
+          sleep 18
 
           mkdir -p "$GITHUB_WORKSPACE/capture-out"
           xcrun simctl io "$UDID" screenshot "$GITHUB_WORKSPACE/capture-out/ios-under-webview-raw.png"
