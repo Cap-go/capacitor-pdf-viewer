@@ -62,7 +62,7 @@
       font-weight="850"
       letter-spacing="0"
     >
-      Add plugin features in one line
+      Native PDF viewer for Capacitor
     </text>
     <text
       x="80"
@@ -73,7 +73,7 @@
       font-weight="850"
       letter-spacing="0"
     >
-      without native friction
+      Open files and URLs
     </text>
   </g>
 
@@ -87,7 +87,7 @@
     font-weight="600"
     letter-spacing="0"
   >
-    Capacitor plugin template for fast, production-ready native integrations.
+    Fullscreen or inline PDFKit and Pdfium viewing with headers, passwords, zoom, and page events.
   </text>
 
   <g filter="url(#shadow)">

@@ -26,6 +26,12 @@
 - Embedded PDF preview in a form or dashboard region (inline mode)
 - Guided reading flows that jump to a page and listen for link taps inside the PDF
 
+## Documentation
+
+- [Plugin docs](https://capgo.app/docs/plugins/pdf-viewer/) on capgo.app
+- [Tutorial](https://capgo.app/plugins/capacitor-pdf-viewer/) with install steps and examples
+- [Capgo](https://capgo.app/) for live updates, native builds, and plugin support
+
 <p align="center">
   <img src="./screenshots/android-demo.webp" alt="Android emulator showing the example PDF open on two pages" width="280" />
   <img src="./screenshots/example-app.webp" alt="Example app with inline PDF and controls" width="280" />
@@ -143,7 +149,7 @@ On native shells, loading a PDF from the WebView origin URL often fails because 
 <docgen-api>
 <!--Update the source file JSDoc comments and rerun docgen to update the docs below-->
 
-Capgo PDF Viewer plugin API.
+Native PDF viewer for Capacitor (PDFKit on iOS, Pdfium on Android, browser viewer on web).
 
 ### open(...)
 
@@ -159,6 +165,8 @@ Open a PDF from a file, path, URL, or base64 source.
 
 **Returns:** <code>Promise&lt;<a href="#openpdfresult">OpenPdfResult</a>&gt;</code>
 
+**Since:** 8.0.0
+
 --------------------
 
 
@@ -170,6 +178,8 @@ close() => Promise<void>
 
 Close the active viewer and remove any overlay.
 
+**Since:** 8.0.0
+
 --------------------
 
 
@@ -179,11 +189,13 @@ Close the active viewer and remove any overlay.
 goToPage(options: GoToPageOptions) => Promise<void>
 ```
 
-Jump to a 1-based page number.
+Jump to a 1-based page number in the open document.
 
 | Param         | Type                                                        |
 | ------------- | ----------------------------------------------------------- |
 | **`options`** | <code><a href="#gotopageoptions">GoToPageOptions</a></code> |
+
+**Since:** 8.0.0
 
 --------------------
 
@@ -194,12 +206,14 @@ Jump to a 1-based page number.
 setZoom(options: SetZoomOptions) => Promise<void>
 ```
 
-Set the zoom scale multiplier (`1` ≈ fit default).
+Set the zoom scale multiplier (`1` is the default fit scale on native).
 On web this resolves without changing the browser viewer zoom.
 
 | Param         | Type                                                      |
 | ------------- | --------------------------------------------------------- |
 | **`options`** | <code><a href="#setzoomoptions">SetZoomOptions</a></code> |
+
+**Since:** 8.0.0
 
 --------------------
 
@@ -210,9 +224,11 @@ On web this resolves without changing the browser viewer zoom.
 getPluginVersion() => Promise<PluginVersionResult>
 ```
 
-Get the native/web implementation version marker.
+Get the native or web implementation version marker.
 
 **Returns:** <code>Promise&lt;<a href="#pluginversionresult">PluginVersionResult</a>&gt;</code>
+
+**Since:** 8.0.0
 
 --------------------
 
@@ -232,6 +248,8 @@ Listen for successful PDF load.
 
 **Returns:** <code>Promise&lt;<a href="#pluginlistenerhandle">PluginListenerHandle</a>&gt;</code>
 
+**Since:** 8.0.0
+
 --------------------
 
 
@@ -241,7 +259,7 @@ Listen for successful PDF load.
 addListener(eventName: 'pageChange', listenerFunc: (event: PdfPageChangeEvent) => void) => Promise<PluginListenerHandle>
 ```
 
-Listen for page changes.
+Listen for page changes while the user scrolls or when {@link PdfViewerPlugin.goToPage} runs.
 
 | Param              | Type                                                                                  |
 | ------------------ | ------------------------------------------------------------------------------------- |
@@ -249,6 +267,8 @@ Listen for page changes.
 | **`listenerFunc`** | <code>(event: <a href="#pdfpagechangeevent">PdfPageChangeEvent</a>) =&gt; void</code> |
 
 **Returns:** <code>Promise&lt;<a href="#pluginlistenerhandle">PluginListenerHandle</a>&gt;</code>
+
+**Since:** 8.0.0
 
 --------------------
 
@@ -268,6 +288,8 @@ Listen for errors while opening or displaying a PDF.
 
 **Returns:** <code>Promise&lt;<a href="#pluginlistenerhandle">PluginListenerHandle</a>&gt;</code>
 
+**Since:** 8.0.0
+
 --------------------
 
 
@@ -277,7 +299,7 @@ Listen for errors while opening or displaying a PDF.
 addListener(eventName: 'close', listenerFunc: (event: PdfCloseEvent) => void) => Promise<PluginListenerHandle>
 ```
 
-Listen for viewer close.
+Listen for viewer close (user gesture or {@link PdfViewerPlugin.close}).
 
 | Param              | Type                                                                        |
 | ------------------ | --------------------------------------------------------------------------- |
@@ -285,6 +307,8 @@ Listen for viewer close.
 | **`listenerFunc`** | <code>(event: <a href="#pdfcloseevent">PdfCloseEvent</a>) =&gt; void</code> |
 
 **Returns:** <code>Promise&lt;<a href="#pluginlistenerhandle">PluginListenerHandle</a>&gt;</code>
+
+**Since:** 8.0.0
 
 --------------------
 
@@ -304,6 +328,8 @@ Listen for taps on links inside the PDF.
 
 **Returns:** <code>Promise&lt;<a href="#pluginlistenerhandle">PluginListenerHandle</a>&gt;</code>
 
+**Since:** 8.0.0
+
 --------------------
 
 
@@ -322,23 +348,23 @@ Result returned after a PDF successfully opens.
 
 #### OpenPdfOptions
 
-Options for opening a PDF.
+Options for {@link PdfViewerPlugin.open}.
 
-| Prop             | Type                                                            | Description                                                                                                                                                                      | Default                   |
-| ---------------- | --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
-| **`source`**     | <code>string</code>                                             | PDF location: file URL, device path, https URL, or base64 (raw or `data:` URI).                                                                                                  |                           |
-| **`sourceType`** | <code><a href="#pdfsourcetype">PdfSourceType</a></code>         | Explicit source kind. When omitted: - `data:` or raw base64 without a scheme =&gt; `base64` - `http`/`https` =&gt; `url` - otherwise =&gt; `file` (treated like a path/file URL) |                           |
-| **`headers`**    | <code><a href="#record">Record</a>&lt;string, string&gt;</code> | HTTP headers used when downloading an https `url` source (e.g. auth cookies).                                                                                                    |                           |
-| **`password`**   | <code>string</code>                                             | Password for encrypted PDFs. On web, the password cannot be injected into the browser viewer; the browser may still prompt.                                                      |                           |
-| **`mode`**       | <code><a href="#pdfdisplaymode">PdfDisplayMode</a></code>       | How to present the viewer.                                                                                                                                                       | <code>'fullscreen'</code> |
-| **`elementId`**  | <code>string</code>                                             | DOM element id used when `mode` is `inline`. Native measures this element and places the viewer over it.                                                                         |                           |
-| **`page`**       | <code>number</code>                                             | Initial page, 1-based.                                                                                                                                                           |                           |
-| **`scrollMode`** | <code><a href="#pdfscrollmode">PdfScrollMode</a></code>         | Scroll behavior.                                                                                                                                                                 | <code>'continuous'</code> |
+| Prop             | Type                                                            | Description                                                                                                                                                                                                       | Default                   | Since |
+| ---------------- | --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- | ----- |
+| **`source`**     | <code>string</code>                                             | PDF location: file URL, device path, https URL, or base64 (raw or `data:` URI).                                                                                                                                   |                           |       |
+| **`sourceType`** | <code><a href="#pdfsourcetype">PdfSourceType</a></code>         | Explicit source kind. When omitted: - `data:` or raw base64 without a scheme =&gt; `base64` - `http`/`https` =&gt; `url` - otherwise =&gt; `file` (treated like a path or file URL; `path` is an alias on native) |                           | 8.0.0 |
+| **`headers`**    | <code><a href="#record">Record</a>&lt;string, string&gt;</code> | HTTP headers used when downloading an https `url` source (for example auth tokens).                                                                                                                               |                           | 8.0.0 |
+| **`password`**   | <code>string</code>                                             | Password for encrypted PDFs on iOS and Android. On web the password cannot be injected into the browser viewer; the browser may still prompt.                                                                     |                           | 8.0.0 |
+| **`mode`**       | <code><a href="#pdfdisplaymode">PdfDisplayMode</a></code>       | How to present the viewer.                                                                                                                                                                                        | <code>'fullscreen'</code> | 8.0.0 |
+| **`elementId`**  | <code>string</code>                                             | DOM element id used when `mode` is `inline`. Native code measures this element and places the viewer over it.                                                                                                     |                           | 8.0.0 |
+| **`page`**       | <code>number</code>                                             | Initial page, 1-based.                                                                                                                                                                                            |                           | 8.0.0 |
+| **`scrollMode`** | <code><a href="#pdfscrollmode">PdfScrollMode</a></code>         | Scroll behavior inside the viewer.                                                                                                                                                                                | <code>'continuous'</code> | 8.0.0 |
 
 
 #### GoToPageOptions
 
-Options for jumping to a page.
+Options for {@link PdfViewerPlugin.goToPage}.
 
 | Prop       | Type                | Description           |
 | ---------- | ------------------- | --------------------- |
@@ -347,20 +373,20 @@ Options for jumping to a page.
 
 #### SetZoomOptions
 
-Options for changing zoom.
+Options for {@link PdfViewerPlugin.setZoom}.
 
-| Prop        | Type                | Description                                        |
-| ----------- | ------------------- | -------------------------------------------------- |
-| **`scale`** | <code>number</code> | Zoom multiplier. `1` is the fit-ish default scale. |
+| Prop        | Type                | Description                                              |
+| ----------- | ------------------- | -------------------------------------------------------- |
+| **`scale`** | <code>number</code> | Zoom multiplier. `1` is the default fit scale on native. |
 
 
 #### PluginVersionResult
 
-Plugin version payload.
+Plugin version payload from {@link PdfViewerPlugin.getPluginVersion}.
 
-| Prop          | Type                | Description                                                 |
-| ------------- | ------------------- | ----------------------------------------------------------- |
-| **`version`** | <code>string</code> | Version identifier returned by the platform implementation. |
+| Prop          | Type                | Description                                                                                         |
+| ------------- | ------------------- | --------------------------------------------------------------------------------------------------- |
+| **`version`** | <code>string</code> | Version identifier returned by the platform implementation (`native` on iOS/Android, `web` on web). |
 
 
 #### PluginListenerHandle
@@ -372,7 +398,7 @@ Plugin version payload.
 
 #### PdfLoadEvent
 
-Emitted when the PDF finishes loading.
+Payload for the `load` event.
 
 | Prop            | Type                | Description            |
 | --------------- | ------------------- | ---------------------- |
@@ -382,7 +408,7 @@ Emitted when the PDF finishes loading.
 
 #### PdfPageChangeEvent
 
-Emitted when the visible page changes.
+Payload for the `pageChange` event.
 
 | Prop            | Type                | Description            |
 | --------------- | ------------------- | ---------------------- |
@@ -392,7 +418,7 @@ Emitted when the visible page changes.
 
 #### PdfErrorEvent
 
-Emitted when opening or rendering fails.
+Payload for the `error` event.
 
 | Prop          | Type                | Description                   |
 | ------------- | ------------------- | ----------------------------- |
@@ -401,7 +427,7 @@ Emitted when opening or rendering fails.
 
 #### PdfLinkTapEvent
 
-Emitted when the user taps a link inside the PDF.
+Payload for the `linkTap` event.
 
 | Prop      | Type                | Description                         |
 | --------- | ------------------- | ----------------------------------- |
@@ -429,7 +455,8 @@ Construct a type with a set of properties K of type T
 #### PdfDisplayMode
 
 Presentation mode for the viewer.
-- `fullscreen`: covers the app with a native/browser overlay.
+
+- `fullscreen`: covers the app with a native or browser overlay.
 - `inline`: places the viewer over a DOM element identified by `elementId`.
 
 <code>'fullscreen' | 'inline'</code>
@@ -438,7 +465,8 @@ Presentation mode for the viewer.
 #### PdfScrollMode
 
 Page scrolling behavior.
-- `continuous`: pages flow vertically (or as one scrollable document).
+
+- `continuous`: pages flow vertically as one scrollable document.
 - `single`: one page at a time.
 
 <code>'continuous' | 'single'</code>
@@ -446,7 +474,7 @@ Page scrolling behavior.
 
 #### PdfCloseEvent
 
-Emitted when the viewer is closed.
+Payload for the `close` event (empty object).
 
 <code><a href="#record">Record</a>&lt;string, never&gt;</code>
 
