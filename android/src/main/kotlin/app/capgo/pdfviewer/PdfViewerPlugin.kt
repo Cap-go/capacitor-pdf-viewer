@@ -436,7 +436,7 @@ class PdfViewerPlugin : Plugin() {
     }
 
     private fun optionalDouble(call: PluginCall, key: String): Double? {
-        return if (call.data.has(key)) call.getDouble(key) else null
+        return if (call.has(key)) call.getDouble(key) else null
     }
 
     private data class LayoutCss(

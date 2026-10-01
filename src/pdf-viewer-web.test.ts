@@ -29,9 +29,9 @@ describe('PdfViewerWeb', () => {
   });
 
   it('rejects toBack on web', async () => {
-    await expect(
-      viewer.open({ source: SAMPLE_PDF_BASE64, sourceType: 'base64', toBack: true }),
-    ).rejects.toThrow(/not available on web/i);
+    await expect(viewer.open({ source: SAMPLE_PDF_BASE64, sourceType: 'base64', toBack: true })).rejects.toThrow(
+      /not available on web/i,
+    );
   });
 
   it('opens url sources with forwarded headers', async () => {
