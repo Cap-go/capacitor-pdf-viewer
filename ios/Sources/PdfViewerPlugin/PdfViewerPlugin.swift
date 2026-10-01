@@ -180,7 +180,7 @@ public class PdfViewerPlugin: CAPPlugin, CAPBridgedPlugin {
                 call.reject("No PDF is open")
                 return
             }
-            session.updateLayout(Self.layout(from: call.data), call: call)
+            session.updateLayout(Self.layout(from: call), call: call)
         }
     }
 
@@ -221,6 +221,18 @@ public class PdfViewerPlugin: CAPPlugin, CAPBridgedPlugin {
             y: cssNumber(object["y"]),
             width: cssNumber(object["width"]),
             height: cssNumber(object["height"])
+        )
+    }
+
+    private static func layout(from call: CAPPluginCall) -> PdfLayoutCss {
+        if let object = call.getObject("layout") {
+            return layout(from: object)
+        }
+        return PdfLayoutCss(
+            x: call.getFloat("x").map { CGFloat($0) },
+            y: call.getFloat("y").map { CGFloat($0) },
+            width: call.getFloat("width").map { CGFloat($0) },
+            height: call.getFloat("height").map { CGFloat($0) }
         )
     }
 
