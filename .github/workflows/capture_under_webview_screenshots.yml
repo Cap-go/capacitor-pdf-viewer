@@ -2,12 +2,6 @@ name: Capture under-webview screenshots
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - cursor/under-webview-pdf-mode-6c33
-    paths:
-      - .github/workflows/capture_under_webview_screenshots.yml
-      - example-app/**
 
 jobs:
   android_build:
