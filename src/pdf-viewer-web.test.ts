@@ -111,6 +111,42 @@ describe('PdfViewerWeb', () => {
     expect(frame.src).toContain('#page=2');
   });
 
+  it('does not emit error when a superseded url download fails', async () => {
+    const racingViewer = new PdfViewerWeb();
+    const errorEvents: { message: string }[] = [];
+    await racingViewer.addListener('error', (event) => {
+      errorEvents.push(event);
+    });
+    const originalFetch = globalThis.fetch;
+    let rejectSlow: ((reason?: unknown) => void) | undefined;
+    globalThis.fetch = mockFetch((input) => {
+      if (String(input).includes('slow.pdf')) {
+        return new Promise<Response>((_resolve, reject) => {
+          rejectSlow = reject;
+        });
+      }
+      return Promise.resolve(new Response(new Uint8Array([1, 2, 3]), { status: 200 }));
+    });
+    try {
+      const slow = racingViewer.open({
+        source: 'https://example.com/slow.pdf',
+        sourceType: 'url',
+        mode: 'fullscreen',
+      });
+      await racingViewer.open({
+        source: SAMPLE_PDF_BASE64,
+        sourceType: 'base64',
+        mode: 'fullscreen',
+      });
+      rejectSlow?.(new Error('Failed to download PDF (503)'));
+      await expect(slow).rejects.toThrow('PDF open was superseded');
+      expect(errorEvents).toHaveLength(0);
+      await racingViewer.close();
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
   it('resolves setZoom without throwing on web', async () => {
     await viewer.open({
       source: SAMPLE_PDF_BASE64,

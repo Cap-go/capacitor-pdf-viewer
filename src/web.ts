@@ -18,6 +18,9 @@ export class PdfViewerWeb extends WebPlugin implements PdfViewerPlugin {
   private pageCount = 1;
   private openToken = 0;
 
+  /**
+   * Open a PDF in the browser viewer (fullscreen overlay or inline host element).
+   */
   async open(options: OpenPdfOptions): Promise<OpenPdfResult> {
     const token = ++this.openToken;
     await this.closeInternal(false);
@@ -108,10 +111,11 @@ export class PdfViewerWeb extends WebPlugin implements PdfViewerPlugin {
       this.notifyListeners('load', result);
       return result;
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      if (message !== 'PDF open was superseded') {
-        this.notifyListeners('error', { message });
+      if (token !== this.openToken) {
+        throw new Error('PDF open was superseded', { cause: error });
       }
+      const message = error instanceof Error ? error.message : String(error);
+      this.notifyListeners('error', { message });
       throw error;
     }
   }
