@@ -16,7 +16,7 @@
 - **Plugin name:** `PDF Viewer`
 - **One-line value:** `Open PDFs inside the app from a file, URL, or base64 string.`
 - **Maintainer:** `Capgo`
-- **Status:** `alpha`
+- **Status:** `stable`
 
 ## Pre-Release Checklist
 
