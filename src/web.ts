@@ -8,56 +8,7 @@ import type {
   PluginVersionResult,
   SetZoomOptions,
 } from './definitions';
-
-function inferSourceType(source: string): 'file' | 'path' | 'url' | 'base64' {
-  const trimmed = source.trim();
-  if (trimmed.toLowerCase().startsWith('data:')) {
-    return 'base64';
-  }
-  if (/^https?:\/\//i.test(trimmed)) {
-    return 'url';
-  }
-  if (!trimmed.includes('://') && looksLikeBase64(trimmed)) {
-    return 'base64';
-  }
-  return 'file';
-}
-
-function looksLikeBase64(value: string): boolean {
-  const compact = value.replace(/\s+/g, '');
-  return compact.length > 32 && /^[A-Za-z0-9+/=]+$/.test(compact);
-}
-
-async function sourceToBlobUrl(
-  source: string,
-  sourceType: 'file' | 'path' | 'url' | 'base64',
-  headers?: Record<string, string>,
-): Promise<{ blobUrl: string; revoke: () => void }> {
-  if (sourceType === 'url') {
-    const response = await fetch(source, { headers });
-    if (!response.ok) {
-      throw new Error(`Failed to download PDF (${response.status})`);
-    }
-    const blob = await response.blob();
-    const blobUrl = URL.createObjectURL(blob);
-    return { blobUrl, revoke: () => URL.revokeObjectURL(blobUrl) };
-  }
-
-  if (sourceType === 'base64') {
-    const base64 = source.startsWith('data:') ? (source.split(',')[1] ?? '') : source.replace(/\s+/g, '');
-    const binary = atob(base64);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i += 1) {
-      bytes[i] = binary.charCodeAt(i);
-    }
-    const blob = new Blob([bytes], { type: 'application/pdf' });
-    const blobUrl = URL.createObjectURL(blob);
-    return { blobUrl, revoke: () => URL.revokeObjectURL(blobUrl) };
-  }
-
-  // file / path: use as-is (same-origin path or file URL)
-  return { blobUrl: source, revoke: () => undefined };
-}
+import { inferSourceType, sourceToBlobUrl } from './source-utils';
 
 export class PdfViewerWeb extends WebPlugin implements PdfViewerPlugin {
   private host: HTMLElement | null = null;
@@ -65,8 +16,13 @@ export class PdfViewerWeb extends WebPlugin implements PdfViewerPlugin {
   private revokeUrl: (() => void) | null = null;
   private page = 1;
   private pageCount = 1;
+  private openToken = 0;
 
+  /**
+   * Open a PDF in the browser viewer (fullscreen overlay or inline host element).
+   */
   async open(options: OpenPdfOptions): Promise<OpenPdfResult> {
+    const token = ++this.openToken;
     await this.closeInternal(false);
 
     const sourceType = options.sourceType ?? inferSourceType(options.source);
@@ -80,6 +36,10 @@ export class PdfViewerWeb extends WebPlugin implements PdfViewerPlugin {
 
     try {
       const { blobUrl, revoke } = await sourceToBlobUrl(options.source, sourceType, options.headers);
+      if (token !== this.openToken) {
+        revoke();
+        throw new Error('PDF open was superseded');
+      }
       this.revokeUrl = revoke;
       this.page = Math.max(1, options.page ?? 1);
       const url = `${blobUrl}#page=${this.page}`;
@@ -151,6 +111,11 @@ export class PdfViewerWeb extends WebPlugin implements PdfViewerPlugin {
       this.notifyListeners('load', result);
       return result;
     } catch (error) {
+      if (token !== this.openToken) {
+        const superseded = new Error('PDF open was superseded');
+        (superseded as Error & { cause?: unknown }).cause = error;
+        throw superseded;
+      }
       const message = error instanceof Error ? error.message : String(error);
       this.notifyListeners('error', { message });
       throw error;
@@ -158,6 +123,7 @@ export class PdfViewerWeb extends WebPlugin implements PdfViewerPlugin {
   }
 
   async close(): Promise<void> {
+    this.openToken += 1;
     await this.closeInternal(true);
   }
 

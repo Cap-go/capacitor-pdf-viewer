@@ -55,6 +55,27 @@ const wireEvents = async () => {
 
 void wireEvents();
 
+if (!Capacitor.isNativePlatform()) {
+  const urlButton = document.getElementById('open-url');
+  urlButton.hidden = false;
+  urlButton.addEventListener('click', async () => {
+    try {
+      zoom = 1;
+      const result = await PdfViewer.open({
+        source: sampleUrl,
+        sourceType: 'url',
+        mode: 'fullscreen',
+        page: 1,
+      });
+      currentPage = result.page;
+      pageCount = result.pageCount;
+      log('open url', result);
+    } catch (error) {
+      log('error', error?.message ?? error);
+    }
+  });
+}
+
 document.getElementById('open-fullscreen').addEventListener('click', async () => {
   try {
     zoom = 1;
