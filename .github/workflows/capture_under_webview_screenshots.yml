@@ -97,7 +97,7 @@ jobs:
           name: android-under-webview-screenshot
           path: capture-out/android-under-webview-raw.png
 
-  ios_screenshot:
+  ios_build:
     runs-on: macos-latest
     timeout-minutes: 10
     steps:
@@ -110,12 +110,11 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: 24.x
-      - name: Build example app and capture screenshot
+      - name: Build iOS simulator app bundle
         run: |
           set -euo pipefail
           bun i
-          bash ./.github/scripts/verify-packed-example.sh ios
-          EXAMPLE="$RUNNER_TEMP/plugin-example-app"
+          EXAMPLE=$(bash ./.github/scripts/prepare-capture-example.sh ios)
           cd "$EXAMPLE"
           VITE_CAPTURE_CUSTOM_UI=true bun run build
           bunx cap sync ios
@@ -130,9 +129,6 @@ jobs:
                 .identifier][-1]')
             UDID=$(xcrun simctl create "PdfViewerCapture" "com.apple.CoreSimulator.SimDeviceType.iPhone-15" "$RUNTIME")
           fi
-
-          xcrun simctl boot "$UDID" 2>/dev/null || true
-          xcrun simctl bootstatus "$UDID" -b
 
           cd ios/App
           DERIVED="$RUNNER_TEMP/DerivedData"
@@ -149,6 +145,48 @@ jobs:
           APP_PATH=$(find "$DERIVED" -name 'App.app' -path '*iphonesimulator*' | head -1)
           if [ -z "$APP_PATH" ]; then
             echo "App.app not found under $DERIVED"
+            exit 1
+          fi
+
+          mkdir -p "$GITHUB_WORKSPACE/capture-out"
+          ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$GITHUB_WORKSPACE/capture-out/App.zip"
+      - name: Upload iOS app bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: capture-ios-app
+          path: capture-out/App.zip
+
+  ios_screenshot:
+    needs: ios_build
+    runs-on: macos-latest
+    timeout-minutes: 10
+    steps:
+      - name: Download iOS app bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: capture-ios-app
+          path: capture-out
+      - name: Capture screenshot on simulator
+        run: |
+          set -euo pipefail
+          UDID=$(xcrun simctl list devices available -j | jq -r '
+            [.devices | to_entries[].value[] |
+              select(.isAvailable == true and (.name | test("^iPhone"))) |
+              .udid][0]')
+          if [ -z "$UDID" ] || [ "$UDID" = "null" ]; then
+            RUNTIME=$(xcrun simctl list runtimes available -j | jq -r '
+              [.runtimes[] | select(.isAvailable == true and (.identifier | test("iOS"))) |
+                .identifier][-1]')
+            UDID=$(xcrun simctl create "PdfViewerCapture" "com.apple.CoreSimulator.SimDeviceType.iPhone-15" "$RUNTIME")
+          fi
+
+          xcrun simctl boot "$UDID" 2>/dev/null || true
+          xcrun simctl bootstatus "$UDID" -b
+
+          unzip -q capture-out/App.zip -d capture-out
+          APP_PATH=$(find capture-out -name 'App.app' | head -1)
+          if [ -z "$APP_PATH" ]; then
+            echo "App.app not found after unzip"
             exit 1
           fi
 
