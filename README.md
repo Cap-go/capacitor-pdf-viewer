@@ -154,6 +154,7 @@ body.pdf-reading {
 
 .custom-toolbar,
 .custom-toolbar button,
+.custom-pdf-ui button,
 [data-capgo-pdf-interactive],
 [data-capgo-pdf-interactive] button {
   pointer-events: auto;

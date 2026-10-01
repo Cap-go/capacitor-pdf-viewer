@@ -146,19 +146,28 @@ final class PdfWebViewTouchRouter: NSObject {
             }
           };
           state.probe = probe;
+          state.rafPending = false;
+          state.scheduleProbe = function() {
+            if (state.rafPending) return;
+            state.rafPending = true;
+            requestAnimationFrame(function() {
+              state.rafPending = false;
+              if (!state.active) return;
+              probe();
+            });
+          };
           probe();
           try {
-            state.resizeObserver = new ResizeObserver(probe);
+            state.resizeObserver = new ResizeObserver(state.scheduleProbe);
             state.resizeObserver.observe(document.documentElement);
-            state.mutationObserver = new MutationObserver(probe);
+            state.mutationObserver = new MutationObserver(state.scheduleProbe);
             state.mutationObserver.observe(document.documentElement, {subtree:true, childList:true, attributes:true, attributeFilter:['class','style','hidden']});
-            window.addEventListener('scroll', probe, true);
+            window.addEventListener('scroll', state.scheduleProbe, true);
             if (window.visualViewport) {
-              window.visualViewport.addEventListener('resize', probe);
-              window.visualViewport.addEventListener('scroll', probe);
+              window.visualViewport.addEventListener('resize', state.scheduleProbe);
+              window.visualViewport.addEventListener('scroll', state.scheduleProbe);
             }
           } catch (e) {}
-          window.__capgoPdfTouchObserverInstalled = true;
         })();
         """
     }
@@ -171,15 +180,14 @@ final class PdfWebViewTouchRouter: NSObject {
       try {
         if (state.resizeObserver) state.resizeObserver.disconnect();
         if (state.mutationObserver) state.mutationObserver.disconnect();
-        if (state.probe) {
-          window.removeEventListener('scroll', state.probe, true);
+        if (state.scheduleProbe) {
+          window.removeEventListener('scroll', state.scheduleProbe, true);
           if (window.visualViewport) {
-            window.visualViewport.removeEventListener('resize', state.probe);
-            window.visualViewport.removeEventListener('scroll', state.probe);
+            window.visualViewport.removeEventListener('resize', state.scheduleProbe);
+            window.visualViewport.removeEventListener('scroll', state.scheduleProbe);
           }
         }
       } catch (e) {}
-      window.__capgoPdfTouchObserverInstalled = false;
       delete window.__capgoPdfTouchOverlay;
     })();
     """
