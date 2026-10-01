@@ -85,7 +85,12 @@ const wireEvents = async () => {
 
 void wireEvents();
 
-if (Capacitor.isNativePlatform() && window.location.hash === '#custom-ui') {
+const shouldAutoOpenCustomUi =
+  Capacitor.isNativePlatform() &&
+  (window.location.hash === '#custom-ui' ||
+    new URLSearchParams(window.location.search).get('demo') === 'custom-ui');
+
+if (shouldAutoOpenCustomUi) {
   window.setTimeout(() => {
     document.getElementById('open-custom-ui')?.click();
   }, 1200);
