@@ -342,7 +342,7 @@ export interface PdfViewerPlugin {
 
   /**
    * Set the zoom scale multiplier (`1` is the default fit scale on native).
-   * On web this resolves without changing the browser viewer zoom unless `toBack` mode is active.
+   * On web this resolves without changing the browser viewer zoom.
    *
    * @since 8.0.0
    */

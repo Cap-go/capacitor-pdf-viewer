@@ -1,6 +1,7 @@
 package app.capgo.pdfviewer
 
 import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
 import android.view.View
 import android.webkit.WebView
@@ -11,10 +12,10 @@ import android.webkit.WebView
 internal object PdfToBackCompositor {
     fun apply(webView: WebView, webViewParent: android.view.ViewGroup?) {
         if (webViewParent != null) {
-            webViewParent.setBackgroundColor(Color.TRANSPARENT)
+            webViewParent.background = ColorDrawable(Color.TRANSPARENT)
             webViewParent.requestTransparentRegion(webView)
         }
-        webView.setBackgroundColor(Color.TRANSPARENT)
+        webView.background = ColorDrawable(Color.TRANSPARENT)
         webView.setLayerType(View.LAYER_TYPE_HARDWARE, null)
     }
 

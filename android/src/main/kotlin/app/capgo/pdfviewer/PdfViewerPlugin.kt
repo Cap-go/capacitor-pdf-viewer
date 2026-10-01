@@ -25,6 +25,7 @@ class PdfViewerPlugin : Plugin() {
     private var underWebView = false
     private var layoutCss = LayoutCss()
     private var webViewVisualState: PdfToBackCompositor.SavedState? = null
+    private var touchRouter: PdfUnderWebViewTouchRouter? = null
 
     override fun load() {
         implementation = PdfViewer(context)
@@ -192,13 +193,14 @@ class PdfViewerPlugin : Plugin() {
             return
         }
         layoutCss = readLayout(call)
-        val container = host
-        if (container == null) {
-            call.reject("No PDF is open")
-            return
-        }
         bridge.activity.runOnUiThread {
+            val container = host
+            if (container == null) {
+                call.reject("No PDF is open")
+                return@runOnUiThread
+            }
             applyUnderWebViewLayout(container)
+            touchRouter?.refreshOverlayRegions()
             call.resolve()
         }
     }
@@ -292,6 +294,10 @@ class PdfViewerPlugin : Plugin() {
             applyUnderWebViewVisualState()
             attachHost(container, null, behindWebView = true)
             pdfView.bind(opened, scrollMode != "single", page)
+            val router = PdfUnderWebViewTouchRouter(bridge.webView, pdfView)
+            router.install()
+            touchRouter = router
+            bridge.webView.postDelayed({ touchRouter?.refreshOverlayRegions() }, 500)
             finishOpen(call)
         } else {
             attachHost(container, null, behindWebView = false)
@@ -392,6 +398,8 @@ class PdfViewerPlugin : Plugin() {
     }
 
     private fun dismiss(emitClose: Boolean) {
+        touchRouter?.release()
+        touchRouter = null
         viewer?.release()
         viewer = null
         host?.let { view ->

@@ -38,7 +38,9 @@ final class PdfViewerSession: NSObject, PDFViewDelegate {
   private var webViewBackgroundColor: UIColor?
   private var webViewScrollBackgroundColor: UIColor?
   private var webViewSuperviewBackgroundColor: UIColor?
+  private var webViewWasOpaque = true
   private var isHiddenLayer = false
+  private var touchRouter: PdfWebViewTouchRouter?
 
     init(plugin: CAPPlugin, webView: WKWebView?, hostController: UIViewController?) {
         self.plugin = plugin
@@ -173,6 +175,10 @@ final class PdfViewerSession: NSObject, PDFViewDelegate {
             call.reject("No PDF is open")
             return
         }
+        guard isUnderWebView || isInline else {
+            call.reject("hide is only supported in underWebView or inline mode")
+            return
+        }
         isHiddenLayer = true
         containerView?.isHidden = true
         call.resolve()
@@ -181,6 +187,10 @@ final class PdfViewerSession: NSObject, PDFViewDelegate {
     func show(call: CAPPluginCall) {
         guard containerView != nil else {
             call.reject("No PDF is open")
+            return
+        }
+        guard isUnderWebView || isInline else {
+            call.reject("show is only supported in underWebView or inline mode")
             return
         }
         isHiddenLayer = false
@@ -195,6 +205,7 @@ final class PdfViewerSession: NSObject, PDFViewDelegate {
         }
         self.layout = layout
         applyUnderWebViewFrame(to: containerView)
+        touchRouter?.refreshOverlayRegions()
         call.resolve()
     }
 
@@ -216,14 +227,16 @@ final class PdfViewerSession: NSObject, PDFViewDelegate {
             fullscreenController.dismiss(animated: true)
             self.fullscreenController = nil
         }
+        if isUnderWebView {
+            touchRouter?.uninstall()
+            touchRouter = nil
+            restoreWebViewVisualState()
+        }
         if isInline || isUnderWebView {
             containerView?.removeFromSuperview()
         }
         containerView = nil
         isInline = false
-        if isUnderWebView {
-            restoreWebViewVisualState()
-        }
         isUnderWebView = false
         isHiddenLayer = false
 
@@ -321,6 +334,12 @@ final class PdfViewerSession: NSObject, PDFViewDelegate {
         containerView = container
         applyUnderWebViewFrame(to: container)
         makeWebViewTransparent()
+        let router = PdfWebViewTouchRouter()
+        router.install(webView: webView, pdfTarget: container)
+        touchRouter = router
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            self?.touchRouter?.refreshOverlayRegions()
+        }
         container.isHidden = isHiddenLayer
     }
 
@@ -342,6 +361,7 @@ final class PdfViewerSession: NSObject, PDFViewDelegate {
     private func makeWebViewTransparent() {
         guard let webView else { return }
         if webViewBackgroundColor == nil {
+            webViewWasOpaque = webView.isOpaque
             webViewBackgroundColor = webView.backgroundColor
             webViewScrollBackgroundColor = webView.scrollView.backgroundColor
             webViewSuperviewBackgroundColor = webView.superview?.backgroundColor
@@ -354,7 +374,7 @@ final class PdfViewerSession: NSObject, PDFViewDelegate {
 
     private func restoreWebViewVisualState() {
         guard let webView else { return }
-        webView.isOpaque = true
+        webView.isOpaque = webViewWasOpaque
         if let saved = webViewBackgroundColor {
             webView.backgroundColor = saved
         } else {
@@ -369,6 +389,7 @@ final class PdfViewerSession: NSObject, PDFViewDelegate {
         webViewBackgroundColor = nil
         webViewScrollBackgroundColor = nil
         webViewSuperviewBackgroundColor = nil
+        webViewWasOpaque = true
     }
 
     private func measureElement(_ elementId: String, completion: @escaping (CGRect?) -> Void) {

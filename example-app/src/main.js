@@ -41,6 +41,9 @@ const refreshCustomIndicator = () => {
 const setCustomUiVisible = (visible) => {
   document.documentElement.classList.toggle('custom-pdf-active', visible);
   document.body.classList.toggle('custom-pdf-active', visible);
+  if (!visible) {
+    document.documentElement.classList.remove('custom-pdf-capture-ready');
+  }
   document.documentElement.style.background = visible ? 'transparent' : '';
   document.body.style.background = visible ? 'transparent' : '';
   const shell = document.getElementById('demo-shell');

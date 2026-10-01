@@ -158,7 +158,7 @@ body.pdf-reading {
 }
 ```
 
-On Android the plugin also enables transparent compositing on the WebView parent and calls `requestTransparentRegion`, so touches on transparent web pixels can reach the native PDF sibling behind the WebView. Keep control surfaces opaque so they still receive taps. On iOS the PDF layer sits in the native view hierarchy below the WebView; combine transparent WebView styling with `pointer-events: none` on non-interactive HTML so gestures reach PDFKit where the platform allows.
+On Android and iOS the plugin places the PDF below the WebView, makes the WebView stack transparent, and routes touches outside interactive HTML controls (buttons, links, inputs, and elements marked with `data-capgo-pdf-interactive`) to the native PDF view. CSS `pointer-events: none` on the page body keeps the DOM hit target list small; keep toolbar controls opaque with `pointer-events: auto` so they stay tappable. On Android the plugin also calls `requestTransparentRegion` for correct compositing. On iOS a native hit-test wrapper forwards non-control touches to PDFKit while the WebView keeps HTML controls.
 
 **Example (custom toolbar):**
 
@@ -332,7 +332,7 @@ setZoom(options: SetZoomOptions) => Promise<void>
 ```
 
 Set the zoom scale multiplier (`1` is the default fit scale on native).
-On web this resolves without changing the browser viewer zoom unless `toBack` mode is active.
+On web this resolves without changing the browser viewer zoom.
 
 | Param         | Type                                                      |
 | ------------- | --------------------------------------------------------- |
