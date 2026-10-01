@@ -188,14 +188,16 @@ export class PdfViewerWeb extends WebPlugin implements PdfViewerPlugin {
     if (!this.frame) {
       throw new Error('No PDF is open');
     }
-    this.frame.style.visibility = 'hidden';
+    const target = this.host?.parentElement === document.body ? this.host : this.frame;
+    target.style.visibility = 'hidden';
   }
 
   async show(): Promise<void> {
     if (!this.frame) {
       throw new Error('No PDF is open');
     }
-    this.frame.style.visibility = 'visible';
+    const target = this.host?.parentElement === document.body ? this.host : this.frame;
+    target.style.visibility = 'visible';
   }
 
   async updateLayout(options: PdfLayoutOptions): Promise<void> {
