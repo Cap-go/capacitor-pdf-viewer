@@ -357,7 +357,7 @@ final class PdfViewerSession: NSObject, PDFViewDelegate {
         if container.superview === webView {
             container.frame = rect
         } else {
-            container.frame = webView.convert(rect, to: webView.superview)
+            container.frame = webView.convert(rect, to: container.superview)
         }
     }
 

@@ -93,7 +93,7 @@ internal class PdfUnderWebViewTouchRouter(
           try {
             state.resizeObserver = new ResizeObserver(state.scheduleProbe);
             state.resizeObserver.observe(document.documentElement);
-            state.mutationObserver = new MutationObserver(probe);
+            state.mutationObserver = new MutationObserver(state.scheduleProbe);
             state.mutationObserver.observe(document.documentElement, {subtree:true, childList:true, attributes:true, attributeFilter:['class','style','hidden']});
             window.addEventListener('scroll', state.scheduleProbe, true);
             if (window.visualViewport) {
@@ -210,9 +210,8 @@ internal class PdfUnderWebViewTouchRouter(
     }
 
     private fun eventCssPoint(event: MotionEvent): Pair<Float, Float> {
-        val density = webView.resources.displayMetrics.density
         val scale = webView.scale.coerceAtLeast(0.01f)
-        return event.x / (density * scale) to event.y / (density * scale)
+        return event.x / scale to event.y / scale
     }
 
     private fun isMappedInsidePdfView(event: MotionEvent): Boolean {
