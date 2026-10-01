@@ -1,5 +1,5 @@
 <svg width="1280" height="640" viewBox="0 0 1280 640" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <title>Capgo GitHub social preview template</title>
+  <title>@capgo/capacitor-pdf-viewer social preview</title>
   <defs>
     <linearGradient id="background" x1="0" y1="0" x2="1280" y2="640" gradientUnits="userSpaceOnUse">
       <stop stop-color="#060A13" />
@@ -10,52 +10,27 @@
       <stop stop-color="#0B0F16" />
       <stop offset="1" stop-color="#111720" />
     </linearGradient>
-    <filter id="shadow" x="48" y="214" width="1184" height="274" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse">
+    <filter id="shadow" x="48" y="248" width="1184" height="274" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse">
       <feDropShadow dx="0" dy="22" stdDeviation="24" flood-color="#02050B" flood-opacity="0.35" />
     </filter>
-    <clipPath id="metaClip">
-      <rect x="80" y="24" width="1040" height="30" />
-    </clipPath>
     <clipPath id="headlineClip">
       <rect x="80" y="78" width="1080" height="128" />
     </clipPath>
     <clipPath id="descriptionClip">
-      <rect x="80" y="212" width="980" height="42" />
+      <rect x="80" y="188" width="1080" height="48" />
     </clipPath>
     <clipPath id="commandClip">
-      <rect x="160" y="360" width="990" height="72" />
-    </clipPath>
-    <clipPath id="badgeOneClip">
-      <rect x="62" y="16" width="120" height="34" />
-    </clipPath>
-    <clipPath id="badgeTwoClip">
-      <rect x="62" y="16" width="150" height="34" />
-    </clipPath>
-    <clipPath id="badgeThreeClip">
-      <rect x="62" y="16" width="120" height="34" />
+      <rect x="160" y="396" width="990" height="72" />
     </clipPath>
   </defs>
 
   <rect width="1280" height="640" rx="10" fill="url(#background)" />
   <rect x="0.5" y="0.5" width="1279" height="639" rx="9.5" stroke="#263245" />
 
-  <text
-    x="80"
-    y="42"
-    clip-path="url(#metaClip)"
-    fill="#A9B3C5"
-    font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif"
-    font-size="15"
-    font-weight="700"
-    letter-spacing="0"
-  >
-    GitHub social preview - Cap-go/capacitor-pdf-viewer - edit copy, keep npm install text
-  </text>
-
   <g clip-path="url(#headlineClip)">
     <text
       x="80"
-      y="137"
+      y="120"
       fill="#F8FAFC"
       font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif"
       font-size="54"
@@ -66,7 +41,7 @@
     </text>
     <text
       x="80"
-      y="194"
+      y="177"
       fill="#20A7FF"
       font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif"
       font-size="54"
@@ -79,7 +54,7 @@
 
   <text
     x="80"
-    y="237"
+    y="236"
     clip-path="url(#descriptionClip)"
     fill="#B7C2D6"
     font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif"
@@ -91,15 +66,15 @@
   </text>
 
   <g filter="url(#shadow)">
-    <rect x="80" y="242" width="1120" height="210" rx="18" fill="url(#panel)" stroke="#253044" />
-    <rect x="80.5" y="242.5" width="1119" height="81" rx="17.5" fill="#151A21" />
-    <path d="M80 324H1200" stroke="#242B36" />
-    <circle cx="116" cy="283" r="7.5" fill="#FF5F57" />
-    <circle cx="142" cy="283" r="7.5" fill="#FFBD2E" />
-    <circle cx="168" cy="283" r="7.5" fill="#28C840" />
+    <rect x="80" y="278" width="1120" height="210" rx="18" fill="url(#panel)" stroke="#253044" />
+    <rect x="80.5" y="278.5" width="1119" height="81" rx="17.5" fill="#151A21" />
+    <path d="M80 360H1200" stroke="#242B36" />
+    <circle cx="116" cy="319" r="7.5" fill="#FF5F57" />
+    <circle cx="142" cy="319" r="7.5" fill="#FFBD2E" />
+    <circle cx="168" cy="319" r="7.5" fill="#28C840" />
   </g>
 
-  <g transform="translate(1018 269)">
+  <g transform="translate(1018 305)">
     <g transform="scale(0.033203125)">
       <path fill="#F8FAFC" d="M264.2 265.3 17 512.5 264.5 760 512 1007.5 759.5 760 1007 512.5 759.8 265.3C623.8 129.3 512.3 18 512 18c-.3 0-111.8 111.3-247.8 247.3zm438.5 55.9C807.4 425.9 893 511.9 893 512.5c0 .5-85.7 86.7-190.5 191.5L512 894.5l-191-191-191-191 190.7-190.7c105-105 191-190.8 191.3-190.8.3 0 86.1 85.6 190.7 190.2z" />
       <path fill="#F8FAFC" d="M440.8 347c-12.6 12.6-22.8 23.3-22.8 23.7 0 .5 53 53.7 117.8 118.4l117.7 117.7 23.2-23.3 23.1-23.2-47.4-47.4-47.4-47.4 47.5-47.5 47.5-47.5-23.3-23.3-23.2-23.2-47.5 47.5-47.5 47.5-47.5-47.4-47.5-47.5-22.7 22.9zM347 441.2 324.5 464l47.3 47.3 47.2 47.2-47.4 47.7-47.3 47.6 23 23 23 23 47.5-47.5 47.5-47.5 47.3 47.3c26 26 47.5 47.1 47.8 46.9 6.6-6.3 45.6-45.5 45.6-45.9 0-1.2-234.5-235.1-235.5-234.9-.6 0-11.1 10.4-23.5 23z" />
@@ -119,7 +94,7 @@
 
   <text
     x="116"
-    y="403"
+    y="439"
     fill="#7FE2A9"
     font-family="SFMono-Regular, Fira Code, Consolas, Liberation Mono, monospace"
     font-size="39"
@@ -129,7 +104,7 @@
   </text>
   <text
     x="160"
-    y="403"
+    y="439"
     clip-path="url(#commandClip)"
     fill="#23A7FF"
     font-family="SFMono-Regular, Fira Code, Consolas, Liberation Mono, monospace"
@@ -139,13 +114,12 @@
     npm i @capgo/capacitor-pdf-viewer
   </text>
 
-  <g transform="translate(80 490)">
-    <rect width="172" height="59" rx="11" fill="#1D222B" stroke="#333A46" />
-    <text x="33" y="38" fill="#20A7FF" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="27" font-weight="760">+</text>
+  <g transform="translate(80 526)">
+    <rect width="148" height="59" rx="11" fill="#1D222B" stroke="#333A46" />
+    <text x="28" y="38" fill="#20A7FF" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="27" font-weight="760">+</text>
     <text
-      x="62"
+      x="56"
       y="38"
-      clip-path="url(#badgeOneClip)"
       fill="#F8FAFC"
       font-family="Inter, ui-sans-serif, system-ui, sans-serif"
       font-size="25"
@@ -155,13 +129,12 @@
       iOS
     </text>
   </g>
-  <g transform="translate(270 490)">
-    <rect width="202" height="59" rx="11" fill="#1D222B" stroke="#333A46" />
-    <text x="33" y="38" fill="#7FE2A9" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="27" font-weight="760">+</text>
+  <g transform="translate(244 526)">
+    <rect width="218" height="59" rx="11" fill="#1D222B" stroke="#333A46" />
+    <text x="28" y="38" fill="#7FE2A9" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="27" font-weight="760">+</text>
     <text
-      x="62"
+      x="56"
       y="38"
-      clip-path="url(#badgeTwoClip)"
       fill="#F8FAFC"
       font-family="Inter, ui-sans-serif, system-ui, sans-serif"
       font-size="25"
@@ -171,13 +144,12 @@
       Android
     </text>
   </g>
-  <g transform="translate(488 490)">
-    <rect width="172" height="59" rx="11" fill="#1D222B" stroke="#333A46" />
-    <text x="33" y="38" fill="#FFBD2E" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="27" font-weight="760">+</text>
+  <g transform="translate(478 526)">
+    <rect width="148" height="59" rx="11" fill="#1D222B" stroke="#333A46" />
+    <text x="28" y="38" fill="#FFBD2E" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="27" font-weight="760">+</text>
     <text
-      x="62"
+      x="56"
       y="38"
-      clip-path="url(#badgeThreeClip)"
       fill="#F8FAFC"
       font-family="Inter, ui-sans-serif, system-ui, sans-serif"
       font-size="25"
