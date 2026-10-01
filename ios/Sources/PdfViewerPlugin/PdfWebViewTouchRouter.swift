@@ -162,7 +162,7 @@ final class PdfWebViewTouchRouter: NSObject {
           try {
             state.resizeObserver = new ResizeObserver(state.scheduleProbe);
             state.resizeObserver.observe(document.documentElement);
-            state.mutationObserver = new MutationObserver(probe);
+            state.mutationObserver = new MutationObserver(state.scheduleProbe);
             state.mutationObserver.observe(document.documentElement, {subtree:true, childList:true, attributes:true, attributeFilter:['class','style','hidden']});
             window.addEventListener('scroll', state.scheduleProbe, true);
             if (window.visualViewport) {
