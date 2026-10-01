@@ -158,7 +158,7 @@ body.pdf-reading {
 }
 ```
 
-On Android and iOS the plugin places the PDF below the WebView, makes the WebView stack transparent, and routes touches outside interactive HTML controls (buttons, links, inputs, and elements marked with `data-capgo-pdf-interactive`) to the native PDF view. CSS `pointer-events: none` on the page body keeps the DOM hit target list small; keep toolbar controls opaque with `pointer-events: auto` so they stay tappable. On Android the plugin also calls `requestTransparentRegion` for correct compositing. On iOS a native hit-test wrapper forwards non-control touches to PDFKit while the WebView keeps HTML controls.
+On Android and iOS the plugin places the PDF below the WebView, makes the WebView stack transparent, and routes touches outside interactive HTML controls to the native PDF view. Interactive targets are detected from DOM geometry (buttons, links, inputs, elements with `data-capgo-pdf-interactive`, and similar controls) combined with CSS `pointer-events`. Use `pointer-events: none` on non-interactive page regions and `pointer-events: auto` on toolbar controls so the native router sends PDF gestures to the document and HTML taps to your UI. On Android the plugin also calls `requestTransparentRegion` for correct compositing. On iOS a native hit-test wrapper applies the same rules while the WebView keeps HTML controls.
 
 **Example (custom toolbar):**
 

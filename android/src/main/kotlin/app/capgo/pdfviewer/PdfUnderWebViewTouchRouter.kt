@@ -1,8 +1,10 @@
 package app.capgo.pdfviewer
 
+import android.annotation.SuppressLint
 import android.graphics.RectF
 import android.view.MotionEvent
 import android.view.View
+import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import org.json.JSONArray
 
@@ -13,7 +15,15 @@ internal class PdfUnderWebViewTouchRouter(
     private val webView: WebView,
     private val pdfView: PdfViewerView,
 ) {
+    private enum class TouchRoute {
+        UNDECIDED,
+        WEB,
+        PDF,
+    }
+
     private var installed = false
+    private var routingEnabled = true
+    private var activeRoute = TouchRoute.UNDECIDED
     private var overlayRectsCss: List<RectF> = emptyList()
 
     private val overlayProbeJs = """
@@ -34,28 +44,80 @@ internal class PdfUnderWebViewTouchRouter(
         })();
     """.trimIndent()
 
+    private val overlayObserverJs = """
+        (function(){
+          if (window.__capgoPdfTouchObserverInstalled) return;
+          window.__capgoPdfTouchObserverInstalled = true;
+          var probe = function() {
+            var sel = 'button, a, input, textarea, select, label, [data-capgo-pdf-interactive], .custom-toolbar, .custom-pdf-ui button';
+            var nodes = document.querySelectorAll(sel);
+            var out = [];
+            for (var i = 0; i < nodes.length; i++) {
+              var el = nodes[i];
+              if (el.closest && el.closest('[hidden]')) continue;
+              var style = window.getComputedStyle(el);
+              if (style.pointerEvents === 'none' || style.visibility === 'hidden' || style.display === 'none') continue;
+              var r = el.getBoundingClientRect();
+              if (r.width < 1 || r.height < 1) continue;
+              out.push({l:r.left,t:r.top,r:r.right,b:r.bottom});
+            }
+            var json = JSON.stringify(out);
+            if (window.CapgoPdfTouchOverlay && window.CapgoPdfTouchOverlay.update) {
+              window.CapgoPdfTouchOverlay.update(json);
+            }
+          };
+          probe();
+          try {
+            new ResizeObserver(probe).observe(document.documentElement);
+            new MutationObserver(probe).observe(document.documentElement, {subtree:true, childList:true, attributes:true, attributeFilter:['class','style','hidden']});
+          } catch (e) {}
+        })();
+    """.trimIndent()
+
     private val touchListener = View.OnTouchListener { _, event ->
-        val density = webView.resources.displayMetrics.density
-        val cssX = event.x / density
-        val cssY = event.y / density
-        if (isInOverlay(cssX, cssY)) {
+        if (!routingEnabled) {
             return@OnTouchListener false
         }
-        val forwarded = MotionEvent.obtain(event)
-        forwarded.offsetLocation(
-            (webView.left - pdfView.left).toFloat(),
-            (webView.top - pdfView.top).toFloat(),
-        )
-        val handled = pdfView.dispatchTouchEvent(forwarded)
-        forwarded.recycle()
-        handled
+
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                refreshOverlayRegions()
+                activeRoute = routeForPrimaryPointer(event)
+            }
+            MotionEvent.ACTION_POINTER_DOWN -> {
+                // Keep the route chosen on ACTION_DOWN for the whole gesture.
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                activeRoute = TouchRoute.UNDECIDED
+            }
+        }
+
+        when (activeRoute) {
+            TouchRoute.WEB, TouchRoute.UNDECIDED -> return@OnTouchListener false
+            TouchRoute.PDF -> {
+                val transformed = transformToPdfView(event) ?: return@OnTouchListener false
+                val handled = pdfView.dispatchTouchEvent(transformed)
+                transformed.recycle()
+                return@OnTouchListener handled
+            }
+        }
     }
 
+    @SuppressLint("JavascriptInterface")
     fun install() {
         if (installed) return
+        webView.addJavascriptInterface(OverlayBridge(), "CapgoPdfTouchOverlay")
         webView.setOnTouchListener(touchListener)
         installed = true
         refreshOverlayRegions()
+        webView.evaluateJavascript(overlayObserverJs, null)
+    }
+
+    fun setRoutingEnabled(enabled: Boolean) {
+        routingEnabled = enabled
+        if (!enabled) {
+            activeRoute = TouchRoute.UNDECIDED
+        }
     }
 
     fun refreshOverlayRegions() {
@@ -67,8 +129,57 @@ internal class PdfUnderWebViewTouchRouter(
     fun release() {
         if (!installed) return
         webView.setOnTouchListener(null)
+        webView.removeJavascriptInterface("CapgoPdfTouchOverlay")
         installed = false
+        routingEnabled = true
+        activeRoute = TouchRoute.UNDECIDED
         overlayRectsCss = emptyList()
+    }
+
+    private inner class OverlayBridge {
+        @JavascriptInterface
+        fun update(json: String) {
+            webView.post {
+                overlayRectsCss = parseOverlayRects(json)
+            }
+        }
+    }
+
+    private fun routeForPrimaryPointer(event: MotionEvent): TouchRoute {
+        val (cssX, cssY) = eventCssPoint(event)
+        if (isInOverlay(cssX, cssY)) {
+            return TouchRoute.WEB
+        }
+        return if (transformToPdfView(event) != null) {
+            TouchRoute.PDF
+        } else {
+            TouchRoute.WEB
+        }
+    }
+
+    private fun eventCssPoint(event: MotionEvent): Pair<Float, Float> {
+        val density = webView.resources.displayMetrics.density
+        val scale = webView.scale.coerceAtLeast(0.01f)
+        return event.x / (density * scale) to event.y / (density * scale)
+    }
+
+    private fun transformToPdfView(event: MotionEvent): MotionEvent? {
+        val webLoc = IntArray(2)
+        val pdfLoc = IntArray(2)
+        webView.getLocationOnScreen(webLoc)
+        pdfView.getLocationOnScreen(pdfLoc)
+        val dx = (webLoc[0] - pdfLoc[0]).toFloat()
+        val dy = (webLoc[1] - pdfLoc[1]).toFloat()
+
+        val pdfX = event.x + dx
+        val pdfY = event.y + dy
+        if (pdfX < 0 || pdfY < 0 || pdfX > pdfView.width || pdfY > pdfView.height) {
+            return null
+        }
+
+        val copy = MotionEvent.obtain(event)
+        copy.offsetLocation(dx, dy)
+        return copy
     }
 
     private fun isInOverlay(cssX: Float, cssY: Float): Boolean {

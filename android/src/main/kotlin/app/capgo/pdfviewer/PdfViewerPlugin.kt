@@ -169,6 +169,7 @@ class PdfViewerPlugin : Plugin() {
         }
         bridge.activity.runOnUiThread {
             container.visibility = View.INVISIBLE
+            touchRouter?.setRoutingEnabled(false)
             call.resolve()
         }
     }
@@ -182,6 +183,8 @@ class PdfViewerPlugin : Plugin() {
         }
         bridge.activity.runOnUiThread {
             container.visibility = View.VISIBLE
+            touchRouter?.setRoutingEnabled(true)
+            touchRouter?.refreshOverlayRegions()
             call.resolve()
         }
     }

@@ -181,6 +181,7 @@ final class PdfViewerSession: NSObject, PDFViewDelegate {
         }
         isHiddenLayer = true
         containerView?.isHidden = true
+        touchRouter?.setRoutingEnabled(false)
         call.resolve()
     }
 
@@ -195,6 +196,8 @@ final class PdfViewerSession: NSObject, PDFViewDelegate {
         }
         isHiddenLayer = false
         containerView?.isHidden = false
+        touchRouter?.setRoutingEnabled(true)
+        touchRouter?.refreshOverlayRegions()
         call.resolve()
     }
 
