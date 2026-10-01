@@ -13,7 +13,7 @@ export type PdfSourceType = 'file' | 'path' | 'url' | 'base64';
  *
  * - `fullscreen`: covers the app with a native or browser overlay.
  * - `inline`: places the viewer over a DOM element identified by `elementId`.
- * - `underWebView`: native PDF behind a transparent WebView (see `toBack`); use HTML for chrome.
+ * - `underWebView`: native PDF behind a transparent WebView (see `toBack`); use HTML for chrome. iOS and Android only.
  *
  * @since 8.0.0
  */

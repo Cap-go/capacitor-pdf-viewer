@@ -157,8 +157,6 @@ class PdfViewerView @JvmOverloads constructor(
 
     fun currentOneBasedPage(): Int = PdfViewerHelpers.oneBasedPage(currentPage, pageCount)
 
-    fun totalPages(): Int = pageCount
-
     fun nextPage() {
         if (currentPage + 1 >= pageCount) return
         goToPage(PdfViewerHelpers.oneBasedPage(currentPage + 1, pageCount))

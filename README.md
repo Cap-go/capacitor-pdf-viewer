@@ -158,7 +158,7 @@ body.pdf-reading {
 }
 ```
 
-On Android the plugin also enables transparent compositing on the WebView parent. Keep control surfaces opaque so they still receive taps.
+On Android the plugin also enables transparent compositing on the WebView parent and calls `requestTransparentRegion`, so touches on transparent web pixels can reach the native PDF sibling behind the WebView. Keep control surfaces opaque so they still receive taps. On iOS the PDF layer sits in the native view hierarchy below the WebView; combine transparent WebView styling with `pointer-events: none` on non-interactive HTML so gestures reach PDFKit where the platform allows.
 
 **Example (custom toolbar):**
 
@@ -182,6 +182,10 @@ await PdfViewer.addListener('pageChange', ({ page, pageCount }) => {
   document.getElementById('pageLabel').textContent = `${page} / ${pageCount}`;
 });
 
+await PdfViewer.addListener('close', () => {
+  document.body.classList.remove('pdf-reading');
+});
+
 await PdfViewer.addListener('zoomChange', ({ scale }) => {
   console.log('zoom', scale);
 });
@@ -197,6 +201,7 @@ await PdfViewer.open({
 
 document.getElementById('prev').onclick = () => PdfViewer.previousPage();
 document.getElementById('next').onclick = () => PdfViewer.nextPage();
+document.getElementById('zoomOut').onclick = () => PdfViewer.setZoom({ scale: 0.75 });
 document.getElementById('zoomIn').onclick = async () => {
   await PdfViewer.setZoom({ scale: 1.25 });
 };
@@ -714,7 +719,7 @@ Presentation mode for the viewer.
 
 - `fullscreen`: covers the app with a native or browser overlay.
 - `inline`: places the viewer over a DOM element identified by `elementId`.
-- `underWebView`: native PDF behind a transparent WebView (see `toBack`); use HTML for chrome.
+- `underWebView`: native PDF behind a transparent WebView (see `toBack`); use HTML for chrome. iOS and Android only.
 
 <code>'fullscreen' | 'inline' | 'underWebView'</code>
 

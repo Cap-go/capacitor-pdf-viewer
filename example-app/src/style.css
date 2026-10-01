@@ -138,7 +138,7 @@ body.custom-pdf-active main.container {
   pointer-events: none;
 }
 
-body.custom-pdf-active .custom-pdf-ui {
+body.custom-pdf-active .custom-toolbar {
   pointer-events: auto;
 }
 

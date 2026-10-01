@@ -19,7 +19,6 @@ export class PdfViewerWeb extends WebPlugin implements PdfViewerPlugin {
   private revokeUrl: (() => void) | null = null;
   private page = 1;
   private pageCount = 1;
-  private zoom = 1;
   private openToken = 0;
 
   private rejectUnderWebView(options: OpenPdfOptions): void {
@@ -58,7 +57,6 @@ export class PdfViewerWeb extends WebPlugin implements PdfViewerPlugin {
       }
       this.revokeUrl = revoke;
       this.page = Math.max(1, options.page ?? 1);
-      this.zoom = 1;
       const url = `${blobUrl}#page=${this.page}`;
 
       const frame = document.createElement('iframe');
@@ -134,7 +132,8 @@ export class PdfViewerWeb extends WebPlugin implements PdfViewerPlugin {
         throw superseded;
       }
       const message = error instanceof Error ? error.message : String(error);
-      if (!(error as { code?: string }).code) {
+      const code = (error as { code?: string }).code;
+      if (code !== 'UNIMPLEMENTED') {
         this.notifyListeners('error', { message });
       }
       throw error;
@@ -168,9 +167,7 @@ export class PdfViewerWeb extends WebPlugin implements PdfViewerPlugin {
     if (!this.frame) {
       throw new Error('No PDF is open');
     }
-    this.zoom = options.scale;
-    void this.zoom;
-    this.notifyListeners('zoomChange', { scale: options.scale });
+    void options;
   }
 
   async getPageCount(): Promise<PdfPageCountResult> {
@@ -188,17 +185,17 @@ export class PdfViewerWeb extends WebPlugin implements PdfViewerPlugin {
   }
 
   async hide(): Promise<void> {
-    if (!this.host) {
+    if (!this.frame) {
       throw new Error('No PDF is open');
     }
-    this.host.style.visibility = 'hidden';
+    this.frame.style.visibility = 'hidden';
   }
 
   async show(): Promise<void> {
-    if (!this.host) {
+    if (!this.frame) {
       throw new Error('No PDF is open');
     }
-    this.host.style.visibility = 'visible';
+    this.frame.style.visibility = 'visible';
   }
 
   async updateLayout(options: PdfLayoutOptions): Promise<void> {

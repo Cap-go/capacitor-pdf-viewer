@@ -25,7 +25,6 @@ const bundledSample = async () => {
 let currentPage = 1;
 let pageCount = 1;
 let zoom = 1;
-let customUiActive = false;
 
 const log = (label, value) => {
   const line = typeof value === 'string' ? value : JSON.stringify(value);
@@ -40,8 +39,13 @@ const refreshCustomIndicator = () => {
 };
 
 const setCustomUiVisible = (visible) => {
-  customUiActive = visible;
   document.body.classList.toggle('custom-pdf-active', visible);
+  document.documentElement.style.background = visible ? 'transparent' : '';
+  const shell = document.getElementById('demo-shell');
+  if (shell) {
+    shell.hidden = visible;
+    shell.setAttribute('aria-hidden', visible ? 'true' : 'false');
+  }
   if (customUi) {
     customUi.hidden = !visible;
     customUi.setAttribute('aria-hidden', visible ? 'false' : 'true');

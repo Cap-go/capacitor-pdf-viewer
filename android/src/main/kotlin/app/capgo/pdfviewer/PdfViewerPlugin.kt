@@ -142,7 +142,7 @@ class PdfViewerPlugin : Plugin() {
 
     @PluginMethod
     fun getPageCount(call: PluginCall) {
-        if (viewer == null) {
+        if (document == null || viewer == null) {
             call.reject("No PDF is open")
             return
         }
@@ -191,7 +191,7 @@ class PdfViewerPlugin : Plugin() {
             call.reject("updateLayout is only supported in underWebView / toBack mode")
             return
         }
-        layoutCss = readLayout(call.data)
+        layoutCss = readLayout(call)
         val container = host
         if (container == null) {
             call.reject("No PDF is open")
@@ -336,19 +336,16 @@ class PdfViewerPlugin : Plugin() {
     }
 
     private fun applyUnderWebViewLayout(container: FrameLayout) {
-        val webView = bridge.webView
-        val parent = container.parent as? ViewGroup ?: return
         val density = resources.displayMetrics.density
-        val widthPx = layoutCss.width?.let { (it * density).toInt() } ?: webView.width
-        val heightPx = layoutCss.height?.let { (it * density).toInt() } ?: webView.height
-        val left = layoutCss.x?.let { (it * density).toInt() + webView.left } ?: webView.left
-        val top = layoutCss.y?.let { (it * density).toInt() + webView.top } ?: webView.top
         val lp = (container.layoutParams as? ViewGroup.MarginLayoutParams)
-            ?: FrameLayout.LayoutParams(widthPx, heightPx)
-        lp.width = widthPx
-        lp.height = heightPx
-        lp.leftMargin = left - parent.left
-        lp.topMargin = top - parent.top
+            ?: FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT,
+            )
+        lp.width = layoutCss.width?.let { (it * density).toInt() } ?: ViewGroup.LayoutParams.MATCH_PARENT
+        lp.height = layoutCss.height?.let { (it * density).toInt() } ?: ViewGroup.LayoutParams.MATCH_PARENT
+        lp.leftMargin = ((layoutCss.x ?: 0.0) * density).toInt()
+        lp.topMargin = ((layoutCss.y ?: 0.0) * density).toInt()
         container.layoutParams = lp
     }
 
@@ -414,14 +411,32 @@ class PdfViewerPlugin : Plugin() {
         }
     }
 
+    private fun readLayout(call: PluginCall): LayoutCss {
+        call.getObject("layout")?.let { return readLayout(it) }
+        return LayoutCss(
+            x = optionalDouble(call, "x"),
+            y = optionalDouble(call, "y"),
+            width = optionalDouble(call, "width"),
+            height = optionalDouble(call, "height"),
+        )
+    }
+
     private fun readLayout(obj: JSObject?): LayoutCss {
         if (obj == null) return LayoutCss()
         return LayoutCss(
-            x = obj.getDouble("x"),
-            y = obj.getDouble("y"),
-            width = obj.getDouble("width"),
-            height = obj.getDouble("height"),
+            x = optionalDouble(obj, "x"),
+            y = optionalDouble(obj, "y"),
+            width = optionalDouble(obj, "width"),
+            height = optionalDouble(obj, "height"),
         )
+    }
+
+    private fun optionalDouble(obj: JSObject, key: String): Double? {
+        return if (obj.has(key)) obj.getDouble(key) else null
+    }
+
+    private fun optionalDouble(call: PluginCall, key: String): Double? {
+        return if (call.data.has(key)) call.getDouble(key) else null
     }
 
     private data class LayoutCss(

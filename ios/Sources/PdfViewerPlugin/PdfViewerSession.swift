@@ -35,8 +35,10 @@ final class PdfViewerSession: NSObject, PDFViewDelegate {
     private var isInline = false
     private var isUnderWebView = false
     private var layout = PdfLayoutCss()
-    private var webViewBackgroundColor: UIColor?
-    private var isHiddenLayer = false
+  private var webViewBackgroundColor: UIColor?
+  private var webViewScrollBackgroundColor: UIColor?
+  private var webViewSuperviewBackgroundColor: UIColor?
+  private var isHiddenLayer = false
 
     init(plugin: CAPPlugin, webView: WKWebView?, hostController: UIViewController?) {
         self.plugin = plugin
@@ -54,7 +56,7 @@ final class PdfViewerSession: NSObject, PDFViewDelegate {
         view.usePageViewController(request.scrollMode == "single", withViewOptions: nil)
         view.document = request.document
         view.delegate = self
-        view.backgroundColor = .clear
+        view.backgroundColor = request.mode == "underWebView" ? .clear : .systemBackground
 
         let index = PdfViewer.pageIndex(fromOneBased: request.page, pageCount: request.document.pageCount)
         if let target = request.document.page(at: index) {
@@ -135,8 +137,9 @@ final class PdfViewerSession: NSObject, PDFViewDelegate {
             return
         }
         pdfView.autoScales = false
-        pdfView.scaleFactor = max(0.1, baseScale * scale)
-        emitZoom(relativeScale: scale)
+        let applied = max(0.1, baseScale * scale)
+        pdfView.scaleFactor = applied
+        emitZoom(relativeScale: applied / max(baseScale, 0.01))
         call.resolve()
     }
 
@@ -237,9 +240,6 @@ final class PdfViewerSession: NSObject, PDFViewDelegate {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
             guard let self else { return }
             self.baseScale = max(pdfView.scaleFactorForSizeToFit, 0.01)
-            if pdfView.scaleFactor > 0 {
-                self.baseScale = pdfView.scaleFactor
-            }
             let current: Int
             if let currentPage = pdfView.currentPage {
                 current = PdfViewer.oneBasedPage(
@@ -305,15 +305,14 @@ final class PdfViewerSession: NSObject, PDFViewDelegate {
     }
 
     private func attachUnderWebView(view: PDFView) {
-        guard let webView else { return }
+        guard let webView, let superview = webView.superview else { return }
         let container = UIView(frame: .zero)
         container.clipsToBounds = true
         container.backgroundColor = .clear
         view.frame = container.bounds
         view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         container.addSubview(view)
-        webView.addSubview(container)
-        webView.sendSubviewToBack(container)
+        superview.insertSubview(container, belowSubview: webView)
         containerView = container
         applyUnderWebViewFrame(to: container)
         makeWebViewTransparent()
@@ -327,13 +326,15 @@ final class PdfViewerSession: NSObject, PDFViewDelegate {
         let y = layout.y ?? 0
         let width = layout.width ?? bounds.width
         let height = layout.height ?? bounds.height
-        container.frame = CGRect(x: x, y: y, width: width, height: height)
+        container.frame = webView.convert(CGRect(x: x, y: y, width: width, height: height), to: webView.superview)
     }
 
     private func makeWebViewTransparent() {
         guard let webView else { return }
         if webViewBackgroundColor == nil {
             webViewBackgroundColor = webView.backgroundColor
+            webViewScrollBackgroundColor = webView.scrollView.backgroundColor
+            webViewSuperviewBackgroundColor = webView.superview?.backgroundColor
         }
         webView.isOpaque = false
         webView.backgroundColor = .clear
@@ -349,7 +350,15 @@ final class PdfViewerSession: NSObject, PDFViewDelegate {
         } else {
             webView.backgroundColor = .white
         }
+        if let savedScroll = webViewScrollBackgroundColor {
+            webView.scrollView.backgroundColor = savedScroll
+        }
+        if let savedSuper = webViewSuperviewBackgroundColor {
+            webView.superview?.backgroundColor = savedSuper
+        }
         webViewBackgroundColor = nil
+        webViewScrollBackgroundColor = nil
+        webViewSuperviewBackgroundColor = nil
     }
 
     private func measureElement(_ elementId: String, completion: @escaping (CGRect?) -> Void) {
