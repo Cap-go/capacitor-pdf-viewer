@@ -72,6 +72,8 @@ internal class PdfUnderWebViewTouchRouter(
               out.push({l:r.left,t:r.top,r:r.right,b:r.bottom});
             }
             var json = JSON.stringify(out);
+            if (state.lastJson === json) return;
+            state.lastJson = json;
             if (window.CapgoPdfTouchOverlay && window.CapgoPdfTouchOverlay.update) {
               window.CapgoPdfTouchOverlay.update(json);
             }

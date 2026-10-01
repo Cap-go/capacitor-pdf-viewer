@@ -141,6 +141,8 @@ final class PdfWebViewTouchRouter: NSObject {
               out.push({l:r.left,t:r.top,r:r.right,b:r.bottom});
             }
             var json = JSON.stringify(out);
+            if (state.lastJson === json) return;
+            state.lastJson = json;
             if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.capgoPdfTouchOverlay) {
               window.webkit.messageHandlers.capgoPdfTouchOverlay.postMessage(json);
             }
