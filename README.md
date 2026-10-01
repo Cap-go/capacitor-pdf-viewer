@@ -7,57 +7,29 @@
   <h2><a href="https://capgo.app/consulting/?ref=plugin_pdf_viewer"> Missing a feature? We’ll build the plugin for you 💪</a></h2>
 </div>
 
+**@capgo/capacitor-pdf-viewer** embeds native PDF viewing in Capacitor apps on iOS, Android, and web. Instead of fighting WebView limitations or shipping a heavy JavaScript PDF renderer, you open files from a path, HTTPS URL (with custom headers), or base64 and get system-grade rendering: page navigation, pinch zoom, continuous or single-page scrolling, password-protected documents, fullscreen or inline layout, and events for load, errors, page changes, link taps, and close. On iOS it uses PDFKit; on Android it uses Pdfium; on web it uses the browser PDF viewer with blob URLs.
+
+## Features
+
+- Open PDFs from a device path, `file://` URL, HTTPS URL, or base64 (including `data:` URIs)
+- Optional `headers` when downloading remote URLs (auth tokens, cookies)
+- Password support for encrypted PDFs on iOS and Android
+- Fullscreen overlay or **inline** mode anchored to a DOM element (`elementId`)
+- Continuous vertical scrolling or single-page mode
+- Programmatic **goToPage**, **setZoom**, and **close**
+- Events: `load`, `pageChange`, `error`, `close`, `linkTap`
+
+## Use cases
+
+- Invoices, manuals, and tickets stored on device or returned from your API as base64
+- Authenticated document download from a signed URL with custom HTTP headers
+- Embedded PDF preview in a form or dashboard region (inline mode)
+- Guided reading flows that jump to a page and listen for link taps inside the PDF
+
 <p align="center">
   <img src="./screenshots/android-demo.webp" alt="Android emulator showing the example PDF open on two pages" width="280" />
+  <img src="./screenshots/example-app.webp" alt="Example app with inline PDF and controls" width="280" />
 </p>
-
-## Snapshot
-
-- **Plugin name:** `PDF Viewer`
-- **One-line value:** `Open PDFs inside the app from a file, URL, or base64 string.`
-- **Maintainer:** `Capgo`
-- **Status:** `alpha`
-
-## Pre-Release Checklist
-
-- [x] Placeholder values in this README are filled in.
-- [x] Capgo CTA links use this plugin's ref slug.
-- [x] README banner points at this repository.
-- [x] `package.json` keywords are filled in.
-- [x] Git remote points at this repository.
-- [x] Bootstrap init script and templates are removed.
-- [x] Compatibility table starts at Capacitor 8.
-- [x] Update `src/definitions.ts` with the real public API and JSDoc.
-- [x] Run `bun run docgen` and review generated API docs below.
-- [x] Confirm examples in this file run against the real implementation.
-- [ ] Set GitHub repo description to start with `Capacitor plugin for ...`.
-- [x] GitHub homepage is `https://capgo.app/docs/plugins/pdf-viewer/`.
-- [ ] Create a GitHub repository custom social preview from `assets/github-social-template.svg`, export it to `assets/github-social-preview.png`, and upload it at GitHub **Settings** -> **General** -> **Social preview**.
-- [ ] Open docs/website PR and follow the complete website integration checklist in section **3) Open docs/website pull request**.
-- [x] Run `bun run verify` before publishing.
-
-## Problem & Scope
-
-### Why this plugin exists
-
-`WebViews are a poor place to read PDFs. Apps need the system PDF engine, page controls, zoom, and support for password-protected files.`
-
-## Capgo Links
-
-- **Plugin docs URL:** `https://capgo.app/docs/plugins/pdf-viewer/`
-- **Plugin tutorial URL:** `https://capgo.app/docs/plugins/pdf-viewer/`
-- **Website/docs repo:** `https://github.com/Cap-go/website`
-
-### What it does
-
-- `Opens a PDF from a local file, a device path, an https URL (with custom headers), or base64 data.`
-- `Shows the PDF full screen or inside part of the screen, with page navigation, pinch zoom, continuous scrolling, and jump-to-page.`
-- `Emits events when the PDF loads, the page changes, an error happens, the viewer closes, or a link is tapped.`
-
-### What it does not do
-
-- `Does not generate or edit PDFs.`
-- `Does not download or store a library of documents. It only opens the source you pass in.`
 
 ## Compatibility
 
@@ -72,193 +44,82 @@ Policy:
 - New plugins start at version `8.0.0` (Capacitor 8 baseline).
 - Backward compatibility for older Capacitor majors is supported on demand.
 
-## Development
-
-```bash
-bun install
-bun run verify
-```
-
-
-## Capgo Example App Deploy Setup
-
-The `Deploy example app to Capgo` GitHub Actions workflow publishes the built `example-app/` web bundle to Capgo when a GitHub release is published or the workflow is manually dispatched. It checks out the release tag, builds the plugin and example app with Bun, and uploads the bundle with one direct Capgo CLI command.
-
-Required setup for every plugin created from this template:
-
-1. Create a Capgo app for the example app id from `example-app/capacitor.config.ts`.
-   The default id is `app.capgo.pdfviewer.example`; after `bun run init-plugin ...`, verify both `appId` values in that file match the new plugin package id plus `.example`.
-2. Keep the Capgo channel named `production`, or edit `.github/workflows/deploy_example_app.yml` if the example app should publish to a different default channel.
-
-`CAPGO_TOKEN` is already configured as a Capgo organization GitHub Actions secret and is read by the workflow through `${{ secrets.CAPGO_TOKEN }}`. Do not create a duplicate repository secret for new plugin repositories.
-
-## Capacitor Hook Scripts (Recommended)
-
-For plugins that need automated setup during `cap sync` / `cap update`, define Capacitor lifecycle hooks in `package.json`.
-
-Example:
-
-```json
-{
-  "scripts": {
-    "generate:version-share": "bun run scripts/generate-version-share-data.mjs",
-    "configure:dependencies": "bun run scripts/configure-dependencies.mjs",
-    "capacitor:sync:before": "bun run generate:version-share",
-    "capacitor:update:before": "bun run generate:version-share",
-    "capacitor:sync:after": "bun run configure:dependencies"
-  }
-}
-```
-
-Guideline:
-- Use `*:before` for generated inputs needed by native sync/update.
-- Use `*:after` for native patching that depends on files created by sync/update.
-- Keep hook scripts idempotent.
-
-## Public Launch (Required)
-
-### 1) Publish in Capgo GitHub org as public
-
-```bash
-gh repo create Cap-go/capacitor-pdf-viewer --public --source=. --remote=origin --push
-```
-
-If the repo already exists and is private:
-
-```bash
-gh repo edit Cap-go/capacitor-pdf-viewer --visibility public --accept-visibility-change-consequences
-```
-
-### 2) Set GitHub description, homepage, and custom social preview
-
-Description must always start with: `Capacitor plugin for ...`
-
-```bash
-gh repo edit Cap-go/capacitor-pdf-viewer \
-  --description "Capacitor plugin for opening PDFs inside the app." \
-  --homepage "https://capgo.app/docs/plugins/pdf-viewer/"
-```
-
-Create the GitHub repository custom social preview before launch. GitHub uses this image for repository cards, link unfurls, and social shares; it is separate from the README banner and website docs images.
-
-1. Open `assets/github-social-template.svg`.
-2. Replace the sample headline, accent line, description, and badges with plugin-specific copy.
-3. Keep the terminal command as `npm i @capgo/capacitor-pdf-viewer` because social and docs copy should use public npm install syntax.
-4. Export the SVG as a 1280 x 640 PNG at `assets/github-social-preview.png`.
-5. Have the agent try to upload the PNG in GitHub under repository **Settings** -> **General** -> **Social preview** -> **Edit**.
-6. Prefer a supported GitHub API if one exists. GitHub currently does not expose a supported public REST/GraphQL endpoint for this upload, so the practical automation path is an authenticated browser session with repository admin access.
-7. If the agent cannot access an authenticated GitHub web session with admin rights, keep `assets/github-social-preview.png` in the repo and report that only the GitHub UI upload is blocked.
-8. Do not treat the repository as launch-ready until this custom GitHub social preview is uploaded.
-9. Copy targets: headline 4-9 words, accent line 2-6 words, description 60-110 characters, badges 1-3 words each. These are guardrails, not hard failures; the SVG clips longer text inside safe regions, so only shorten copy when the rendered image is hard to read or visibly clipped.
-
-### 3) Open docs/website pull request
-
-Create a PR on `https://github.com/Cap-go/website` (or the local `landing/` folder in the monorepo) with all of the following:
-
-1. Add the plugin entry in `src/config/plugins.ts`.
-2. Add a plugin `LinkCard` in `src/content/docs/docs/plugins/index.mdx`.
-3. Create docs pages in `src/content/docs/docs/plugins/<plugin-doc-slug>/`:
-   `index.mdx`, `getting-started.mdx`, and optionally `ios.mdx` + `android.mdx` when platform setup differs.
-4. Update `astro.config.mjs`:
-   add `docs/plugins/<plugin-doc-slug>/**` in pagefind path buckets and add a sidebar section for the plugin pages.
-5. Add the SEO tutorial page in `src/content/plugins-tutorials/en/<plugin-repo-slug>.md`.
-6. Add icon asset `public/icons/plugins/<plugin-doc-slug>.svg` if the docs hero uses a plugin icon.
-7. Cross-link docs and tutorial pages.
-
-Slug mapping rules:
-
-- `<plugin-doc-slug>` is the docs route slug used under `/docs/plugins/<plugin-doc-slug>/`.
-- `<plugin-repo-slug>` is extracted from the GitHub repo URL in `src/config/plugins.ts` and is used by `/plugins/<slug>/`.
-- Example: repo `https://github.com/Cap-go/capacitor-app-attest/` requires tutorial file
-  `src/content/plugins-tutorials/en/capacitor-app-attest.md`.
-
-Starter snippets:
-
-`src/config/plugins.ts`
-
-```ts
-{
-  name: '@capgo/capacitor-pdf-viewer',
-  author: 'github.com/Cap-go',
-  description: 'Capacitor plugin for opening PDFs inside the app',
-  href: 'https://github.com/Cap-go/capacitor-pdf-viewer/',
-  title: 'PDF Viewer',
-  icon: ShieldCheckIcon,
-},
-```
-
-`astro.config.mjs` sidebar entry
-
-```ts
-{
-  label: 'PDF Viewer',
-  items: [
-    { label: 'Overview', link: '/docs/plugins/<plugin-doc-slug>/' },
-    { label: 'Getting started', link: '/docs/plugins/<plugin-doc-slug>/getting-started' },
-    { label: 'iOS setup', link: '/docs/plugins/<plugin-doc-slug>/ios' },
-    { label: 'Android setup', link: '/docs/plugins/<plugin-doc-slug>/android' },
-  ],
-  collapsed: true,
-},
-```
-
-Required docs files:
-
-- `src/content/docs/docs/plugins/<plugin-doc-slug>/index.mdx`
-- `src/content/docs/docs/plugins/<plugin-doc-slug>/getting-started.mdx`
-- `src/content/docs/docs/plugins/<plugin-doc-slug>/ios.mdx` (if iOS-specific setup exists)
-- `src/content/docs/docs/plugins/<plugin-doc-slug>/android.mdx` (if Android-specific setup exists)
-- `src/content/plugins-tutorials/en/<plugin-repo-slug>.md`
-
 ## Install
 
-You can use our AI-Assisted Setup to install the plugin. Add the Capgo skills to your AI tool using the following command:
-
 ```bash
-npx skills add https://github.com/cap-go/capacitor-skills --skill capacitor-plugins
+npm i @capgo/capacitor-pdf-viewer
+npx cap sync
 ```
 
-Then use the following prompt:
-
-```text
-Use the `capacitor-plugins` skill from `cap-go/capacitor-skills` to install the `@capgo/capacitor-pdf-viewer` plugin in my project.
-```
-
-If you prefer Manual Setup, install the plugin by running the following commands and follow the platform-specific instructions below:
+With Bun:
 
 ```bash
 bun add @capgo/capacitor-pdf-viewer
 bunx cap sync
 ```
 
-## Minimal Usage
+## iOS setup
+
+No extra Info.plist keys or entitlements are required by this plugin. It uses Apple PDFKit. Remote PDFs use `URLSession` with the headers you pass in `open`. For HTTPS URLs, follow your app's usual App Transport Security rules.
+
+## Android setup
+
+The plugin library targets **minSdk 24** (Android 7.0) and bundles Pdfium (`io.legere:pdfiumandroid`). The plugin `AndroidManifest.xml` is empty: it does not declare `INTERNET`, storage, or FileProvider entries. If you open **https** sources, add `INTERNET` to your **app** manifest:
+
+```xml
+<uses-permission android:name="android.permission.INTERNET" />
+```
+
+Local files and base64 do not need extra permissions beyond what your app already uses to read those paths.
+
+## Web
+
+No Capacitor sync steps are required for web. URL sources are fetched with your `headers`; `setZoom` is a no-op because zoom is controlled by the browser viewer. Passwords cannot be injected on web; the browser may prompt on its own.
+
+## Usage
 
 ```typescript
 import { PdfViewer } from '@capgo/capacitor-pdf-viewer';
 
-const result = await PdfViewer.open({
-  source: 'https://example.com/document.pdf',
-  mode: 'fullscreen',
+await PdfViewer.addListener('pageChange', ({ page, pageCount }) => {
+  console.log(`Page ${page} of ${pageCount}`);
 });
-console.log(result.pageCount, result.page);
 
-await PdfViewer.addListener('pageChange', ({ page }) => {
-  console.log('page', page);
+const { pageCount, page } = await PdfViewer.open({
+  source: 'https://example.com/manual.pdf',
+  headers: { Authorization: 'Bearer YOUR_TOKEN' },
+  mode: 'fullscreen',
+  scrollMode: 'continuous',
+  page: 1,
+});
+
+await PdfViewer.goToPage({ page: 2 });
+await PdfViewer.setZoom({ scale: 1.25 });
+await PdfViewer.close();
+```
+
+**Inline preview** in a div:
+
+```typescript
+await PdfViewer.open({
+  source: base64FromYourApi,
+  sourceType: 'base64',
+  mode: 'inline',
+  elementId: 'pdf-host',
 });
 ```
 
-## Integration Notes
+**Password-protected file** (iOS and Android):
 
-- **iOS:** Uses Apple PDFKit. Password-protected files unlock with the password you pass to `open`.
-- **Android:** Uses Pdfium (`io.legere:pdfiumandroid`) so password-protected files, pinch zoom, and page navigation work. The plugin library manifest does not declare `INTERNET` or storage permissions; your app must already allow network access if you open remote https URLs.
-- **Web:** Falls back to the browser's own PDF viewer (`iframe` / blob URL). Custom download headers are applied when fetching URL sources. A `password` cannot be injected into the browser viewer; the browser may still prompt.
-## Example App
+```typescript
+await PdfViewer.open({
+  source: '/path/on/device/encrypted.pdf',
+  sourceType: 'path',
+  password: 'secret',
+});
+```
 
-The `example-app/` folder is linked via `file:..` and is intended for validating native wiring during development. It loads `public/sample.pdf` in the WebView and opens those bytes with the plugin, because the WebView origin is not a network server.
-
-<p align="center">
-  <img src="./screenshots/android-demo.webp" alt="Android emulator showing the example PDF open on two pages" width="280" />
-</p>
+On native shells, loading a PDF from the WebView origin URL often fails because that origin is not a real file server. Fetch the bytes in JavaScript and pass `sourceType: 'base64'` instead (see `example-app/`).
 
 ## API
 
