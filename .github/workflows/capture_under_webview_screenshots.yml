@@ -2,6 +2,9 @@ name: Capture under-webview screenshots (temporary)
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - cursor/under-webview-pdf-mode-6c33
 
 jobs:
   android_screenshot:
