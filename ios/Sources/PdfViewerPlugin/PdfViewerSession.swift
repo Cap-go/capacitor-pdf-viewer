@@ -331,7 +331,12 @@ final class PdfViewerSession: NSObject, PDFViewDelegate {
         let y = layout.y ?? 0
         let width = layout.width ?? bounds.width
         let height = layout.height ?? bounds.height
-        container.frame = webView.convert(CGRect(x: x, y: y, width: width, height: height), to: webView.superview)
+        let rect = CGRect(x: x, y: y, width: width, height: height)
+        if container.superview === webView {
+            container.frame = rect
+        } else {
+            container.frame = webView.convert(rect, to: webView.superview)
+        }
     }
 
     private func makeWebViewTransparent() {
