@@ -80,57 +80,107 @@ final class PdfWebViewTouchRouterView: UIView {
     }
 }
 
-final class PdfWebViewTouchRouter: NSObject, WKScriptMessageHandler {
+private final class PdfTouchOverlayScriptHandler: NSObject, WKScriptMessageHandler {
+    weak var router: PdfWebViewTouchRouter?
+
+    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        router?.handleOverlayMessage(message)
+    }
+}
+
+final class PdfWebViewTouchRouter: NSObject {
+    private static let interactiveSelector =
+        "button, a, input, textarea, select, label, [data-capgo-pdf-interactive], .custom-toolbar, .custom-pdf-ui button"
+
     private weak var webView: WKWebView?
     private weak var pdfTarget: UIView?
     private var wrapperView: PdfWebViewTouchRouterView?
+    private var overlayMessageHandler: PdfTouchOverlayScriptHandler?
     private let messageHandlerName = "capgoPdfTouchOverlay"
 
-    private let overlayProbeJs = """
-    (function(){
-      var sel = 'button, a, input, textarea, select, label, [data-capgo-pdf-interactive], .custom-toolbar, .custom-pdf-ui button';
-      var nodes = document.querySelectorAll(sel);
-      var out = [];
-      for (var i = 0; i < nodes.length; i++) {
-        var el = nodes[i];
-        if (el.closest && el.closest('[hidden]')) continue;
-        var style = window.getComputedStyle(el);
-        if (style.pointerEvents === 'none' || style.visibility === 'hidden' || style.display === 'none') continue;
-        var r = el.getBoundingClientRect();
-        if (r.width < 1 || r.height < 1) continue;
-        out.push({l:r.left,t:r.top,r:r.right,b:r.bottom});
-      }
-      return JSON.stringify(out);
-    })();
-    """
+    private var overlayProbeJs: String {
+        """
+        (function(){
+          var sel = '\(Self.interactiveSelector)';
+          var nodes = document.querySelectorAll(sel);
+          var out = [];
+          for (var i = 0; i < nodes.length; i++) {
+            var el = nodes[i];
+            if (el.closest && el.closest('[hidden]')) continue;
+            var style = window.getComputedStyle(el);
+            if (style.pointerEvents === 'none' || style.visibility === 'hidden' || style.display === 'none') continue;
+            var r = el.getBoundingClientRect();
+            if (r.width < 1 || r.height < 1) continue;
+            out.push({l:r.left,t:r.top,r:r.right,b:r.bottom});
+          }
+          return JSON.stringify(out);
+        })();
+        """
+    }
 
-    private let overlayObserverJs = """
+    private var overlayObserverJs: String {
+        """
+        (function(){
+          if (window.__capgoPdfTouchOverlay && window.__capgoPdfTouchOverlay.installed) return;
+          window.__capgoPdfTouchOverlay = window.__capgoPdfTouchOverlay || {};
+          var state = window.__capgoPdfTouchOverlay;
+          state.installed = true;
+          state.active = true;
+          var sel = '\(Self.interactiveSelector)';
+          var probe = function() {
+            if (!state.active) return;
+            var nodes = document.querySelectorAll(sel);
+            var out = [];
+            for (var i = 0; i < nodes.length; i++) {
+              var el = nodes[i];
+              if (el.closest && el.closest('[hidden]')) continue;
+              var style = window.getComputedStyle(el);
+              if (style.pointerEvents === 'none' || style.visibility === 'hidden' || style.display === 'none') continue;
+              var r = el.getBoundingClientRect();
+              if (r.width < 1 || r.height < 1) continue;
+              out.push({l:r.left,t:r.top,r:r.right,b:r.bottom});
+            }
+            var json = JSON.stringify(out);
+            if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.capgoPdfTouchOverlay) {
+              window.webkit.messageHandlers.capgoPdfTouchOverlay.postMessage(json);
+            }
+          };
+          state.probe = probe;
+          probe();
+          try {
+            state.resizeObserver = new ResizeObserver(probe);
+            state.resizeObserver.observe(document.documentElement);
+            state.mutationObserver = new MutationObserver(probe);
+            state.mutationObserver.observe(document.documentElement, {subtree:true, childList:true, attributes:true, attributeFilter:['class','style','hidden']});
+            window.addEventListener('scroll', probe, true);
+            if (window.visualViewport) {
+              window.visualViewport.addEventListener('resize', probe);
+              window.visualViewport.addEventListener('scroll', probe);
+            }
+          } catch (e) {}
+          window.__capgoPdfTouchObserverInstalled = true;
+        })();
+        """
+    }
+
+    private let overlayTeardownJs = """
     (function(){
-      if (window.__capgoPdfTouchObserverInstalled) return;
-      window.__capgoPdfTouchObserverInstalled = true;
-      var probe = function() {
-        var sel = 'button, a, input, textarea, select, label, [data-capgo-pdf-interactive], .custom-toolbar, .custom-pdf-ui button';
-        var nodes = document.querySelectorAll(sel);
-        var out = [];
-        for (var i = 0; i < nodes.length; i++) {
-          var el = nodes[i];
-          if (el.closest && el.closest('[hidden]')) continue;
-          var style = window.getComputedStyle(el);
-          if (style.pointerEvents === 'none' || style.visibility === 'hidden' || style.display === 'none') continue;
-          var r = el.getBoundingClientRect();
-          if (r.width < 1 || r.height < 1) continue;
-          out.push({l:r.left,t:r.top,r:r.right,b:r.bottom});
-        }
-        var json = JSON.stringify(out);
-        if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.capgoPdfTouchOverlay) {
-          window.webkit.messageHandlers.capgoPdfTouchOverlay.postMessage(json);
-        }
-      };
-      probe();
+      var state = window.__capgoPdfTouchOverlay;
+      if (!state) return;
+      state.active = false;
       try {
-        new ResizeObserver(probe).observe(document.documentElement);
-        new MutationObserver(probe).observe(document.documentElement, {subtree:true, childList:true, attributes:true, attributeFilter:['class','style','hidden']});
+        if (state.resizeObserver) state.resizeObserver.disconnect();
+        if (state.mutationObserver) state.mutationObserver.disconnect();
+        if (state.probe) {
+          window.removeEventListener('scroll', state.probe, true);
+          if (window.visualViewport) {
+            window.visualViewport.removeEventListener('resize', state.probe);
+            window.visualViewport.removeEventListener('scroll', state.probe);
+          }
+        }
       } catch (e) {}
+      window.__capgoPdfTouchObserverInstalled = false;
+      delete window.__capgoPdfTouchOverlay;
     })();
     """
 
@@ -150,7 +200,10 @@ final class PdfWebViewTouchRouter: NSObject, WKScriptMessageHandler {
         wrapper.addSubview(webView)
         wrapperView = wrapper
 
-        webView.configuration.userContentController.add(self, name: messageHandlerName)
+        let handler = PdfTouchOverlayScriptHandler()
+        handler.router = self
+        overlayMessageHandler = handler
+        webView.configuration.userContentController.add(handler, name: messageHandlerName)
         refreshOverlayRegions()
         webView.evaluateJavaScript(overlayObserverJs, completionHandler: nil)
     }
@@ -169,7 +222,7 @@ final class PdfWebViewTouchRouter: NSObject, WKScriptMessageHandler {
         }
     }
 
-    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+    fileprivate func handleOverlayMessage(_ message: WKScriptMessage) {
         guard message.name == messageHandlerName,
               let wrapperView
         else {
@@ -179,7 +232,13 @@ final class PdfWebViewTouchRouter: NSObject, WKScriptMessageHandler {
     }
 
     func uninstall() {
-        webView?.configuration.userContentController.removeScriptMessageHandler(forName: messageHandlerName)
+        if let webView {
+            webView.evaluateJavaScript(overlayTeardownJs, completionHandler: nil)
+            webView.configuration.userContentController.removeScriptMessageHandler(forName: messageHandlerName)
+        }
+        overlayMessageHandler?.router = nil
+        overlayMessageHandler = nil
+
         guard let wrapperView, let webView, let superview = wrapperView.superview else {
             self.wrapperView = nil
             self.webView = nil

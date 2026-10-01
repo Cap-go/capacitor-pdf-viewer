@@ -152,18 +152,26 @@ body.pdf-reading {
   pointer-events: none;
 }
 
-.pdf-toolbar,
-.pdf-toolbar button {
+.custom-toolbar,
+.custom-toolbar button,
+[data-capgo-pdf-interactive],
+[data-capgo-pdf-interactive] button {
   pointer-events: auto;
 }
 ```
 
-On Android and iOS the plugin places the PDF below the WebView, makes the WebView stack transparent, and routes touches outside interactive HTML controls to the native PDF view. Interactive targets are detected from DOM geometry (buttons, links, inputs, elements with `data-capgo-pdf-interactive`, and similar controls) combined with CSS `pointer-events`. Use `pointer-events: none` on non-interactive page regions and `pointer-events: auto` on toolbar controls so the native router sends PDF gestures to the document and HTML taps to your UI. On Android the plugin also calls `requestTransparentRegion` for correct compositing. On iOS a native hit-test wrapper applies the same rules while the WebView keeps HTML controls.
+On Android and iOS the plugin places the PDF below the WebView, makes the WebView stack transparent, and routes touches outside interactive HTML controls to the native PDF view. The native touch router treats these DOM nodes as interactive (their `getBoundingClientRect()` regions receive WebView touches; everything else can go to the PDF when `pointer-events` allows it):
+
+- `button`, `a`, `input`, `textarea`, `select`, `label`
+- any element with **`data-capgo-pdf-interactive`** (use this on a toolbar container so the whole bar stays tappable)
+- elements matching **`.custom-toolbar`** or **`.custom-pdf-ui button`**
+
+Elements with `pointer-events: none`, `visibility: hidden`, or `display: none`, or inside a `[hidden]` ancestor, are ignored. Use `pointer-events: none` on non-interactive page regions and `pointer-events: auto` on controls (see CSS above). On Android the plugin also calls `requestTransparentRegion` for correct compositing. On iOS a native hit-test wrapper applies the same rules while the WebView keeps HTML controls.
 
 **Example (custom toolbar):**
 
 ```html
-<div class="pdf-toolbar">
+<div class="custom-toolbar pdf-toolbar" data-capgo-pdf-interactive>
   <button type="button" id="prev">Prev</button>
   <span id="pageLabel">1 / 1</span>
   <button type="button" id="next">Next</button>

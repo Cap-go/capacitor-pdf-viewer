@@ -21,6 +21,11 @@ internal class PdfUnderWebViewTouchRouter(
         PDF,
     }
 
+    companion object {
+        private const val INTERACTIVE_SELECTOR =
+            "button, a, input, textarea, select, label, [data-capgo-pdf-interactive], .custom-toolbar, .custom-pdf-ui button"
+    }
+
     private var installed = false
     private var routingEnabled = true
     private var activeRoute = TouchRoute.UNDECIDED
@@ -28,7 +33,8 @@ internal class PdfUnderWebViewTouchRouter(
 
     private val overlayProbeJs = """
         (function(){
-          var sel = 'button, a, input, textarea, select, label, [data-capgo-pdf-interactive], .custom-toolbar, .custom-pdf-ui button';
+          if (!window.__capgoPdfTouchOverlay || !window.__capgoPdfTouchOverlay.active) return '[]';
+          var sel = '$INTERACTIVE_SELECTOR';
           var nodes = document.querySelectorAll(sel);
           var out = [];
           for (var i = 0; i < nodes.length; i++) {
@@ -46,10 +52,14 @@ internal class PdfUnderWebViewTouchRouter(
 
     private val overlayObserverJs = """
         (function(){
-          if (window.__capgoPdfTouchObserverInstalled) return;
-          window.__capgoPdfTouchObserverInstalled = true;
+          if (window.__capgoPdfTouchOverlay && window.__capgoPdfTouchOverlay.installed) return;
+          window.__capgoPdfTouchOverlay = window.__capgoPdfTouchOverlay || {};
+          var state = window.__capgoPdfTouchOverlay;
+          state.installed = true;
+          state.active = true;
+          var sel = '$INTERACTIVE_SELECTOR';
           var probe = function() {
-            var sel = 'button, a, input, textarea, select, label, [data-capgo-pdf-interactive], .custom-toolbar, .custom-pdf-ui button';
+            if (!state.active) return;
             var nodes = document.querySelectorAll(sel);
             var out = [];
             for (var i = 0; i < nodes.length; i++) {
@@ -66,11 +76,41 @@ internal class PdfUnderWebViewTouchRouter(
               window.CapgoPdfTouchOverlay.update(json);
             }
           };
+          state.probe = probe;
           probe();
           try {
-            new ResizeObserver(probe).observe(document.documentElement);
-            new MutationObserver(probe).observe(document.documentElement, {subtree:true, childList:true, attributes:true, attributeFilter:['class','style','hidden']});
+            state.resizeObserver = new ResizeObserver(probe);
+            state.resizeObserver.observe(document.documentElement);
+            state.mutationObserver = new MutationObserver(probe);
+            state.mutationObserver.observe(document.documentElement, {subtree:true, childList:true, attributes:true, attributeFilter:['class','style','hidden']});
+            window.addEventListener('scroll', probe, true);
+            if (window.visualViewport) {
+              window.visualViewport.addEventListener('resize', probe);
+              window.visualViewport.addEventListener('scroll', probe);
+            }
           } catch (e) {}
+          window.__capgoPdfTouchObserverInstalled = true;
+        })();
+    """.trimIndent()
+
+    private val overlayTeardownJs = """
+        (function(){
+          var state = window.__capgoPdfTouchOverlay;
+          if (!state) return;
+          state.active = false;
+          try {
+            if (state.resizeObserver) state.resizeObserver.disconnect();
+            if (state.mutationObserver) state.mutationObserver.disconnect();
+            if (state.probe) {
+              window.removeEventListener('scroll', state.probe, true);
+              if (window.visualViewport) {
+                window.visualViewport.removeEventListener('resize', state.probe);
+                window.visualViewport.removeEventListener('scroll', state.probe);
+              }
+            }
+          } catch (e) {}
+          window.__capgoPdfTouchObserverInstalled = false;
+          delete window.__capgoPdfTouchOverlay;
         })();
     """.trimIndent()
 
@@ -128,6 +168,7 @@ internal class PdfUnderWebViewTouchRouter(
 
     fun release() {
         if (!installed) return
+        webView.evaluateJavascript(overlayTeardownJs, null)
         webView.setOnTouchListener(null)
         webView.removeJavascriptInterface("CapgoPdfTouchOverlay")
         installed = false
@@ -140,6 +181,7 @@ internal class PdfUnderWebViewTouchRouter(
         @JavascriptInterface
         fun update(json: String) {
             webView.post {
+                if (!installed) return@post
                 overlayRectsCss = parseOverlayRects(json)
             }
         }
@@ -150,7 +192,7 @@ internal class PdfUnderWebViewTouchRouter(
         if (isInOverlay(cssX, cssY)) {
             return TouchRoute.WEB
         }
-        return if (transformToPdfView(event) != null) {
+        return if (isMappedInsidePdfView(event)) {
             TouchRoute.PDF
         } else {
             TouchRoute.WEB
@@ -163,20 +205,26 @@ internal class PdfUnderWebViewTouchRouter(
         return event.x / (density * scale) to event.y / (density * scale)
     }
 
+    private fun isMappedInsidePdfView(event: MotionEvent): Boolean {
+        val webLoc = IntArray(2)
+        val pdfLoc = IntArray(2)
+        webView.getLocationOnScreen(webLoc)
+        pdfView.getLocationOnScreen(pdfLoc)
+        val pdfX = event.x + (webLoc[0] - pdfLoc[0])
+        val pdfY = event.y + (webLoc[1] - pdfLoc[1])
+        return pdfX >= 0 && pdfY >= 0 && pdfX <= pdfView.width && pdfY <= pdfView.height
+    }
+
     private fun transformToPdfView(event: MotionEvent): MotionEvent? {
+        if (!isMappedInsidePdfView(event)) {
+            return null
+        }
         val webLoc = IntArray(2)
         val pdfLoc = IntArray(2)
         webView.getLocationOnScreen(webLoc)
         pdfView.getLocationOnScreen(pdfLoc)
         val dx = (webLoc[0] - pdfLoc[0]).toFloat()
         val dy = (webLoc[1] - pdfLoc[1]).toFloat()
-
-        val pdfX = event.x + dx
-        val pdfY = event.y + dy
-        if (pdfX < 0 || pdfY < 0 || pdfX > pdfView.width || pdfY > pdfView.height) {
-            return null
-        }
-
         val copy = MotionEvent.obtain(event)
         copy.offsetLocation(dx, dy)
         return copy
