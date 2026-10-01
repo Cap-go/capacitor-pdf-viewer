@@ -6,26 +6,70 @@ final class PdfWebViewTouchRouterView: UIView {
     weak var pdfTarget: UIView?
     var overlayRects: [CGRect] = []
     var isRoutingEnabled = true
+    /// Locked for the current touch sequence (first finger down through all fingers up).
+    private var gestureRoutesToPdf: Bool?
 
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
         guard let webView else { return nil }
         let pointInWeb = convert(point, to: webView)
 
         if !isRoutingEnabled {
+            gestureRoutesToPdf = nil
             return webView.hitTest(pointInWeb, with: event)
         }
+
+        syncGestureLock(with: event)
+
+        if let locked = gestureRoutesToPdf {
+            return hitTestWithRoute(locked, point: point, pointInWeb: pointInWeb, event: event)
+        }
+
+        let routesToPdf = shouldRouteToPdf(point: point, pointInWeb: pointInWeb, event: event)
+        gestureRoutesToPdf = routesToPdf
+        return hitTestWithRoute(routesToPdf, point: point, pointInWeb: pointInWeb, event: event)
+    }
+
+    private func syncGestureLock(with event: UIEvent?) {
+        guard let touches = event?.allTouches else { return }
+        let active = touches.filter { $0.phase != .ended && $0.phase != .cancelled }
+        if active.isEmpty {
+            gestureRoutesToPdf = nil
+            return
+        }
+        if active.allSatisfy({ $0.phase == .began }) {
+            gestureRoutesToPdf = nil
+        }
+    }
+
+    private func shouldRouteToPdf(point: CGPoint, pointInWeb: CGPoint, event: UIEvent?) -> Bool {
+        guard let webView else { return false }
 
         if let webHit = webView.hitTest(pointInWeb, with: event),
            webHit !== webView,
            webHit !== webView.scrollView
         {
-            return webHit
+            return false
         }
 
         if overlayRects.contains(where: { $0.contains(pointInWeb) }) {
-            return webView.hitTest(pointInWeb, with: event)
+            return false
         }
 
+        guard let pdfTarget else { return false }
+        let pointInPdf = convert(point, to: pdfTarget)
+        return pdfTarget.bounds.contains(pointInPdf)
+    }
+
+    private func hitTestWithRoute(
+        _ routesToPdf: Bool,
+        point: CGPoint,
+        pointInWeb: CGPoint,
+        event: UIEvent?
+    ) -> UIView? {
+        guard let webView else { return nil }
+        if !routesToPdf {
+            return webView.hitTest(pointInWeb, with: event)
+        }
         guard let pdfTarget else { return webView.hitTest(pointInWeb, with: event) }
         let pointInPdf = convert(point, to: pdfTarget)
         guard pdfTarget.bounds.contains(pointInPdf) else {
@@ -112,6 +156,9 @@ final class PdfWebViewTouchRouter: NSObject, WKScriptMessageHandler {
 
     func setRoutingEnabled(_ enabled: Bool) {
         wrapperView?.isRoutingEnabled = enabled
+        if !enabled {
+            wrapperView?.gestureRoutesToPdf = nil
+        }
     }
 
     func refreshOverlayRegions() {
