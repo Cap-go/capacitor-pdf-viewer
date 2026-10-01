@@ -305,14 +305,19 @@ final class PdfViewerSession: NSObject, PDFViewDelegate {
     }
 
     private func attachUnderWebView(view: PDFView) {
-        guard let webView, let superview = webView.superview else { return }
+        guard let webView else { return }
         let container = UIView(frame: .zero)
         container.clipsToBounds = true
         container.backgroundColor = .clear
         view.frame = container.bounds
         view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         container.addSubview(view)
-        superview.insertSubview(container, belowSubview: webView)
+        if let superview = webView.superview {
+            superview.insertSubview(container, belowSubview: webView)
+        } else {
+            webView.addSubview(container)
+            webView.sendSubviewToBack(container)
+        }
         containerView = container
         applyUnderWebViewFrame(to: container)
         makeWebViewTransparent()
