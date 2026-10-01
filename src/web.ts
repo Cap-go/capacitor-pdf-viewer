@@ -112,7 +112,9 @@ export class PdfViewerWeb extends WebPlugin implements PdfViewerPlugin {
       return result;
     } catch (error) {
       if (token !== this.openToken) {
-        throw new Error('PDF open was superseded', { cause: error });
+        const superseded = new Error('PDF open was superseded');
+        (superseded as Error & { cause?: unknown }).cause = error;
+        throw superseded;
       }
       const message = error instanceof Error ? error.message : String(error);
       this.notifyListeners('error', { message });
