@@ -1,0 +1,129 @@
+name: Capture under-webview screenshots
+
+on:
+  workflow_dispatch:
+
+jobs:
+  android_screenshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24.x
+      - name: Setup Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: zulu
+          java-version: '21'
+      - name: Enable KVM for emulator
+        run: |
+          set -euo pipefail
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Build example debug APK
+        run: |
+          set -euo pipefail
+          bun i
+          bash ./.github/scripts/verify-packed-example.sh android
+          cd "$RUNNER_TEMP/plugin-example-app"
+          bunx cap sync android
+          cd android
+          ./gradlew assembleDebug
+          mkdir -p "$GITHUB_WORKSPACE/capture-out"
+          cp app/build/outputs/apk/debug/app-debug.apk "$GITHUB_WORKSPACE/capture-out/app-debug.apk"
+      - name: Screenshot on emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          script: |
+            set -euo pipefail
+            adb wait-for-device
+            adb shell getprop sys.boot_completed | tr -d '\r' | grep -q 1
+            adb install -r "$GITHUB_WORKSPACE/capture-out/app-debug.apk"
+            adb shell am start -a android.intent.action.VIEW \
+              -d "capacitor://localhost#custom-ui" \
+              -n app.capgo.pdfviewer/.MainActivity
+            sleep 15
+            adb exec-out screencap -p > "$GITHUB_WORKSPACE/capture-out/android-under-webview-raw.png"
+      - name: Upload Android screenshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-under-webview-screenshot
+          path: capture-out/android-under-webview-raw.png
+
+  ios_screenshot:
+    runs-on: macos-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24.x
+      - name: Build example app and capture screenshot
+        run: |
+          set -euo pipefail
+          bun i
+          bash ./.github/scripts/verify-packed-example.sh ios
+          EXAMPLE="$RUNNER_TEMP/plugin-example-app"
+          cd "$EXAMPLE"
+          bunx cap sync ios
+
+          UDID=$(xcrun simctl list devices available -j | jq -r '
+            [.devices | to_entries[].value[] |
+              select(.isAvailable == true and (.name | test("^iPhone"))) |
+              .udid][0]')
+          if [ -z "$UDID" ] || [ "$UDID" = "null" ]; then
+            RUNTIME=$(xcrun simctl list runtimes available -j | jq -r '
+              [.runtimes[] | select(.isAvailable == true and (.identifier | test("iOS"))) |
+                .identifier][-1]')
+            UDID=$(xcrun simctl create "PdfViewerCapture" "com.apple.CoreSimulator.SimDeviceType.iPhone-15" "$RUNTIME")
+          fi
+
+          xcrun simctl boot "$UDID" 2>/dev/null || true
+          xcrun simctl bootstatus "$UDID" -b
+
+          cd ios/App
+          DERIVED="$RUNNER_TEMP/DerivedData"
+          xcodebuild \
+            -project App.xcodeproj \
+            -scheme App \
+            -configuration Debug \
+            -destination "id=$UDID" \
+            -derivedDataPath "$DERIVED" \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+          APP_PATH=$(find "$DERIVED" -name 'App.app' -path '*iphonesimulator*' | head -1)
+          if [ -z "$APP_PATH" ]; then
+            echo "App.app not found under $DERIVED"
+            exit 1
+          fi
+
+          xcrun simctl install "$UDID" "$APP_PATH"
+          xcrun simctl launch "$UDID" app.capgo.pdfviewer || true
+          xcrun simctl openurl "$UDID" 'capacitor://localhost#custom-ui'
+          sleep 15
+
+          mkdir -p "$GITHUB_WORKSPACE/capture-out"
+          xcrun simctl io "$UDID" screenshot "$GITHUB_WORKSPACE/capture-out/ios-under-webview-raw.png"
+      - name: Upload iOS screenshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-under-webview-screenshot
+          path: capture-out/ios-under-webview-raw.png
