@@ -109,7 +109,9 @@ export class PdfViewerWeb extends WebPlugin implements PdfViewerPlugin {
       return result;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      this.notifyListeners('error', { message });
+      if (message !== 'PDF open was superseded') {
+        this.notifyListeners('error', { message });
+      }
       throw error;
     }
   }
