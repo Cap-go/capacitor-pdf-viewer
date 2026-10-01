@@ -14,6 +14,7 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 tmp_root="${RUNNER_TEMP:-$(mktemp -d)}"
 pack_dir="$tmp_root/plugin-package"
 test_app="$tmp_root/plugin-example-app"
+path_file="${CAPTURE_EXAMPLE_PATH_FILE:-$tmp_root/capture-example-path.txt}"
 
 cd "$repo_root"
 
@@ -50,4 +51,4 @@ case "$platform" in
     ;;
 esac
 
-echo "$test_app"
+printf '%s\n' "$test_app" > "$path_file"

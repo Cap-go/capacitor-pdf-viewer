@@ -114,7 +114,8 @@ jobs:
         run: |
           set -euo pipefail
           bun i
-          EXAMPLE=$(bash ./.github/scripts/prepare-capture-example.sh ios)
+          bash ./.github/scripts/prepare-capture-example.sh ios
+          EXAMPLE=$(cat "$RUNNER_TEMP/capture-example-path.txt")
           cd "$EXAMPLE"
           VITE_CAPTURE_CUSTOM_UI=true bun run build
           bunx cap sync ios
