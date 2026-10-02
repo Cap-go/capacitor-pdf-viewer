@@ -31,6 +31,7 @@ class PdfViewerView @JvmOverloads constructor(
     interface Listener {
         fun onPageChanged(page: Int, pageCount: Int)
         fun onLinkTapped(url: String)
+        fun onZoomChanged(scale: Float)
     }
 
     var listener: Listener? = null
@@ -61,6 +62,7 @@ class PdfViewerView @JvmOverloads constructor(
                 userScale = (userScale * detector.scaleFactor).coerceIn(0.5f, 4f)
                 rebuildLayout()
                 invalidate()
+                emitZoom()
                 return true
             }
         },
@@ -148,6 +150,21 @@ class PdfViewerView @JvmOverloads constructor(
         userScale = scale.coerceIn(0.5f, 4f)
         rebuildLayout()
         invalidate()
+        emitZoom()
+    }
+
+    fun currentZoom(): Float = userScale
+
+    fun currentOneBasedPage(): Int = PdfViewerHelpers.oneBasedPage(currentPage, pageCount)
+
+    fun nextPage() {
+        if (currentPage + 1 >= pageCount) return
+        goToPage(PdfViewerHelpers.oneBasedPage(currentPage + 1, pageCount))
+    }
+
+    fun previousPage() {
+        if (currentPage <= 0) return
+        goToPage(PdfViewerHelpers.oneBasedPage(currentPage - 1, pageCount))
     }
 
     fun release() {
@@ -319,6 +336,10 @@ class PdfViewerView @JvmOverloads constructor(
             PdfViewerHelpers.oneBasedPage(currentPage, pageCount),
             pageCount,
         )
+    }
+
+    private fun emitZoom() {
+        listener?.onZoomChanged(userScale)
     }
 
     private fun clearBitmaps() {
