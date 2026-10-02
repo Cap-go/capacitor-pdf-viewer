@@ -345,16 +345,17 @@ class PdfViewerPlugin : Plugin() {
     }
 
     private fun applyUnderWebViewLayout(container: FrameLayout) {
+        val webView = bridge.webView
         val density = resources.displayMetrics.density
         val lp = (container.layoutParams as? ViewGroup.MarginLayoutParams)
             ?: FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT,
             )
-        lp.width = layoutCss.width?.let { (it * density).toInt() } ?: ViewGroup.LayoutParams.MATCH_PARENT
-        lp.height = layoutCss.height?.let { (it * density).toInt() } ?: ViewGroup.LayoutParams.MATCH_PARENT
-        lp.leftMargin = ((layoutCss.x ?: 0.0) * density).toInt()
-        lp.topMargin = ((layoutCss.y ?: 0.0) * density).toInt()
+        lp.width = layoutCss.width?.let { (it * density).toInt() } ?: webView.width
+        lp.height = layoutCss.height?.let { (it * density).toInt() } ?: webView.height
+        lp.leftMargin = ((layoutCss.x ?: 0.0) * density).toInt() + webView.left
+        lp.topMargin = ((layoutCss.y ?: 0.0) * density).toInt() + webView.top
         container.layoutParams = lp
     }
 
