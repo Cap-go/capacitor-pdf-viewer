@@ -1,0 +1,4 @@
+[
+  {"thread_id":"PRRT_kwDOUy7aXM6oSjth","reply":"Fixed in f664744: omitted width/height use MATCH_PARENT until WebView has size; OnLayoutChangeListener reapplies layout and refreshes touch regions on resize; listener removed on close."},
+  {"thread_id":"PRRT_kwDOUy7aXM6oTHih","reply":"Fixed in f664744: same underWebView layout sync via MATCH_PARENT fallback, post-layout apply, and WebView OnLayoutChangeListener when CSS dimensions are omitted."}
+]
