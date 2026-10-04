@@ -369,9 +369,6 @@ class PdfViewerPlugin : Plugin() {
 
     private fun installUnderWebViewLayoutListener(container: FrameLayout) {
         removeUnderWebViewLayoutListener()
-        if (layoutCss.width != null && layoutCss.height != null) {
-            return
-        }
         val webView = bridge.webView
         val listener = View.OnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
             val active = host
