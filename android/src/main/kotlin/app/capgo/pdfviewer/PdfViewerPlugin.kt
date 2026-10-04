@@ -26,6 +26,7 @@ class PdfViewerPlugin : Plugin() {
     private var layoutCss = LayoutCss()
     private var webViewVisualState: PdfToBackCompositor.SavedState? = null
     private var touchRouter: PdfUnderWebViewTouchRouter? = null
+    private var underWebViewLayoutListener: View.OnLayoutChangeListener? = null
 
     override fun load() {
         implementation = PdfViewer(context)
@@ -203,6 +204,7 @@ class PdfViewerPlugin : Plugin() {
                 return@runOnUiThread
             }
             applyUnderWebViewLayout(container)
+            installUnderWebViewLayoutListener(container)
             touchRouter?.refreshOverlayRegions()
             call.resolve()
         }
@@ -339,6 +341,8 @@ class PdfViewerPlugin : Plugin() {
             val index = parent.indexOfChild(webView)
             parent.addView(container, index, params)
             applyUnderWebViewLayout(container)
+            installUnderWebViewLayoutListener(container)
+            webView.post { applyUnderWebViewLayout(container) }
         } else {
             parent.addView(container, params)
         }
@@ -352,11 +356,38 @@ class PdfViewerPlugin : Plugin() {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT,
             )
-        lp.width = layoutCss.width?.let { (it * density).toInt() } ?: webView.width
-        lp.height = layoutCss.height?.let { (it * density).toInt() } ?: webView.height
+        lp.width = layoutCss.width?.let { (it * density).toInt() }
+            ?: webView.width.takeIf { it > 0 }
+            ?: ViewGroup.LayoutParams.MATCH_PARENT
+        lp.height = layoutCss.height?.let { (it * density).toInt() }
+            ?: webView.height.takeIf { it > 0 }
+            ?: ViewGroup.LayoutParams.MATCH_PARENT
         lp.leftMargin = ((layoutCss.x ?: 0.0) * density).toInt() + webView.left
         lp.topMargin = ((layoutCss.y ?: 0.0) * density).toInt() + webView.top
         container.layoutParams = lp
+    }
+
+    private fun installUnderWebViewLayoutListener(container: FrameLayout) {
+        removeUnderWebViewLayoutListener()
+        if (layoutCss.width != null && layoutCss.height != null) {
+            return
+        }
+        val webView = bridge.webView
+        val listener = View.OnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+            val active = host
+            if (!underWebView || active !== container) {
+                return@OnLayoutChangeListener
+            }
+            applyUnderWebViewLayout(container)
+            touchRouter?.refreshOverlayRegions()
+        }
+        webView.addOnLayoutChangeListener(listener)
+        underWebViewLayoutListener = listener
+    }
+
+    private fun removeUnderWebViewLayoutListener() {
+        underWebViewLayoutListener?.let { bridge.webView.removeOnLayoutChangeListener(it) }
+        underWebViewLayoutListener = null
     }
 
     private fun applyUnderWebViewVisualState() {
@@ -402,6 +433,7 @@ class PdfViewerPlugin : Plugin() {
     }
 
     private fun dismiss(emitClose: Boolean) {
+        removeUnderWebViewLayoutListener()
         touchRouter?.release()
         touchRouter = null
         viewer?.release()
