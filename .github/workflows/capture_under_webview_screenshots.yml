@@ -95,8 +95,6 @@ jobs:
   ios_build:
     runs-on: macos-latest
     timeout-minutes: 10
-    env:
-      CAPTURE_EXAMPLE_PATH_FILE: ${{ runner.temp }}/capture-example-path.txt
     steps:
       - name: Check out
         uses: actions/checkout@v7
@@ -108,6 +106,8 @@ jobs:
         with:
           node-version: 24.x
       - name: Build iOS simulator app bundle
+        env:
+          CAPTURE_EXAMPLE_PATH_FILE: ${{ runner.temp }}/capture-example-path.txt
         run: |
           set -euo pipefail
           bun i
