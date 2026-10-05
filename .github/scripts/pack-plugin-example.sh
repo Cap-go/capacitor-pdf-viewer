@@ -5,8 +5,10 @@
 pack_plugin_example_app() {
   local repo_root="$1"
   local tmp_root="$2"
+  local pack_dir="$tmp_root/plugin-package"
+  local packed_packages
+  local plugin_name
 
-  pack_dir="$tmp_root/plugin-package"
   test_app="$tmp_root/plugin-example-app"
 
   cd "$repo_root"

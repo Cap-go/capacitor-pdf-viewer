@@ -32,7 +32,11 @@ const drawParagraph = (page, font, text, x, startY, size, lineHeight, maxChars) 
   return y;
 };
 
-const doc = await PDFDocument.create();
+const FIXED_PDF_DATE = new Date('2020-01-01T00:00:00.000Z');
+
+const doc = await PDFDocument.create({ updateMetadata: false });
+doc.setCreationDate(FIXED_PDF_DATE);
+doc.setModificationDate(FIXED_PDF_DATE);
 const body = await doc.embedFont(StandardFonts.Helvetica);
 const heading = await doc.embedFont(StandardFonts.HelveticaBold);
 
