@@ -62,8 +62,11 @@ class PdfViewerView @JvmOverloads constructor(
                 userScale = (userScale * detector.scaleFactor).coerceIn(0.5f, 4f)
                 rebuildLayout()
                 invalidate()
-                emitZoom()
                 return true
+            }
+
+            override fun onScaleEnd(detector: ScaleGestureDetector) {
+                emitZoom()
             }
         },
     )

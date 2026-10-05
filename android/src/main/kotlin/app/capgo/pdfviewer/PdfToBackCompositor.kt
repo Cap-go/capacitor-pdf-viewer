@@ -23,7 +23,6 @@ internal object PdfToBackCompositor {
         val webViewBackground: Drawable?,
         val parentBackground: Drawable?,
         val layerType: Int,
-        val alpha: Float,
     )
 
     fun capture(webView: WebView, webViewParent: android.view.ViewGroup?): SavedState {
@@ -31,14 +30,12 @@ internal object PdfToBackCompositor {
             webViewBackground = webView.background,
             parentBackground = webViewParent?.background,
             layerType = webView.layerType,
-            alpha = webView.alpha,
         )
     }
 
     fun restore(webView: WebView, webViewParent: android.view.ViewGroup?, saved: SavedState?) {
         if (saved == null) return
         webView.background = saved.webViewBackground
-        webView.alpha = saved.alpha
         webView.setLayerType(saved.layerType, null)
         webViewParent?.background = saved.parentBackground
     }

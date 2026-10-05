@@ -146,8 +146,6 @@ html.custom-pdf-capture-ready body {
   padding: 0 !important;
   min-height: 100vh;
   display: block !important;
-  align-items: stretch !important;
-  justify-content: flex-start !important;
 }
 
 body.custom-pdf-active #demo-shell,
@@ -166,10 +164,6 @@ body.custom-pdf-active main.container {
 
 body.custom-pdf-active .custom-toolbar {
   pointer-events: auto;
-}
-
-.custom-pdf-ui:not([hidden]) {
-  background: transparent;
 }
 
 .custom-pdf-ui {

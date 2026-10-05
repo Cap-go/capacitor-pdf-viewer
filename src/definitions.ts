@@ -329,12 +329,18 @@ export interface PdfViewerPlugin {
   /**
    * Move to the next page when one exists.
    *
+   * On web the browser PDF viewer does not report total pages, so {@link PdfViewerPlugin.getPageCount}
+   * stays at `1` and this method cannot advance past page `1` unless you call {@link PdfViewerPlugin.goToPage}
+   * with a higher page number yourself.
+   *
    * @since 8.0.0
    */
   nextPage(): Promise<void>;
 
   /**
    * Move to the previous page when one exists.
+   *
+   * On web, page navigation follows the same limitations as {@link PdfViewerPlugin.nextPage}.
    *
    * @since 8.0.0
    */
@@ -351,6 +357,9 @@ export interface PdfViewerPlugin {
   /**
    * Read the total page count of the open document.
    *
+   * On web this always returns `1` because the embedded browser PDF viewer does not expose
+   * a reliable page count to JavaScript.
+   *
    * @since 8.0.0
    */
   getPageCount(): Promise<PdfPageCountResult>;
@@ -358,19 +367,22 @@ export interface PdfViewerPlugin {
   /**
    * Read the current 1-based page index.
    *
+   * On web this reflects the last page set by {@link PdfViewerPlugin.open} or
+   * {@link PdfViewerPlugin.goToPage} only; scrolling inside the browser viewer does not update it.
+   *
    * @since 8.0.0
    */
   getCurrentPage(): Promise<PdfCurrentPageResult>;
 
   /**
-   * Hide the native PDF layer without unloading the document.
+   * Hide the PDF viewer layer without unloading the document (native underWebView layer or web iframe host).
    *
    * @since 8.0.0
    */
   hide(): Promise<void>;
 
   /**
-   * Show the native PDF layer after `hide()`.
+   * Show the PDF viewer layer after {@link PdfViewerPlugin.hide}.
    *
    * @since 8.0.0
    */

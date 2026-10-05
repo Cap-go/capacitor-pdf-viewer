@@ -33,6 +33,7 @@ jobs:
           bash ./.github/scripts/verify-packed-example.sh android
           EXAMPLE="$RUNNER_TEMP/plugin-example-app"
           cd "$EXAMPLE"
+          bun run generate:pdf
           VITE_CAPTURE_CUSTOM_UI=true bun run build
           bunx cap sync android
           cd android
@@ -40,7 +41,7 @@ jobs:
           mkdir -p "$GITHUB_WORKSPACE/capture-out"
           cp app/build/outputs/apk/debug/app-debug.apk "$GITHUB_WORKSPACE/capture-out/app-debug.apk"
       - name: Upload debug APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: capture-android-apk
           path: capture-out/app-debug.apk
@@ -55,7 +56,7 @@ jobs:
       ANDROID_AVD_HOME: /home/runner/.android/avd
     steps:
       - name: Download debug APK
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: capture-android-apk
           path: capture-out
@@ -86,7 +87,7 @@ jobs:
             sleep 25
             adb exec-out screencap -p > "$GITHUB_WORKSPACE/capture-out/android-under-webview-raw.png"
       - name: Upload Android screenshot
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: android-under-webview-screenshot
           path: capture-out/android-under-webview-raw.png
@@ -94,6 +95,8 @@ jobs:
   ios_build:
     runs-on: macos-latest
     timeout-minutes: 10
+    env:
+      CAPTURE_EXAMPLE_PATH_FILE: ${{ runner.temp }}/capture-example-path.txt
     steps:
       - name: Check out
         uses: actions/checkout@v7
@@ -109,8 +112,9 @@ jobs:
           set -euo pipefail
           bun i
           bash ./.github/scripts/prepare-capture-example.sh ios
-          EXAMPLE=$(cat "$RUNNER_TEMP/capture-example-path.txt")
+          EXAMPLE=$(cat "$CAPTURE_EXAMPLE_PATH_FILE")
           cd "$EXAMPLE"
+          bun run generate:pdf
           VITE_CAPTURE_CUSTOM_UI=true bun run build
           bunx cap sync ios
 
@@ -137,7 +141,7 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             build
 
-          APP_PATH=$(find "$DERIVED" -name 'App.app' -path '*iphonesimulator*' | head -1)
+          APP_PATH=$(find "$DERIVED" -path '*iphonesimulator*' -name 'App.app' -print -quit)
           if [ -z "$APP_PATH" ]; then
             echo "App.app not found under $DERIVED"
             exit 1
@@ -146,7 +150,7 @@ jobs:
           mkdir -p "$GITHUB_WORKSPACE/capture-out"
           ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$GITHUB_WORKSPACE/capture-out/App.zip"
       - name: Upload iOS app bundle
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: capture-ios-app
           path: capture-out/App.zip
@@ -157,7 +161,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Download iOS app bundle
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: capture-ios-app
           path: capture-out
@@ -179,9 +183,9 @@ jobs:
           xcrun simctl bootstatus "$UDID" -b
 
           unzip -q capture-out/App.zip -d capture-out
-          APP_PATH=$(find capture-out -name 'App.app' | head -1)
-          if [ -z "$APP_PATH" ]; then
-            echo "App.app not found after unzip"
+          APP_PATH="capture-out/App.app"
+          if [ ! -d "$APP_PATH" ]; then
+            echo "App.app not found after unzip at $APP_PATH"
             exit 1
           fi
 
@@ -192,7 +196,7 @@ jobs:
           mkdir -p "$GITHUB_WORKSPACE/capture-out"
           xcrun simctl io "$UDID" screenshot "$GITHUB_WORKSPACE/capture-out/ios-under-webview-raw.png"
       - name: Upload iOS screenshot
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ios-under-webview-screenshot
           path: capture-out/ios-under-webview-raw.png
