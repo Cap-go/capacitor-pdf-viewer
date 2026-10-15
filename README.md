@@ -452,9 +452,7 @@ When omitted, the plugin infers the type from the string shape.
 
 Construct a type with a set of properties K of type T
 
-<code>{
- [P in K]: T;
- }</code>
+<code>{ [P in K]: T; }</code>
 
 
 #### PdfDisplayMode
