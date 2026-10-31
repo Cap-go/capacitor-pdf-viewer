@@ -25,6 +25,18 @@ const bundledSample = async () => {
 let currentPage = 1;
 let pageCount = 1;
 let zoom = 1;
+let customUiOpenGeneration = 0;
+
+const setCustomCloseEnabled = (enabled) => {
+  const closeButton = document.getElementById('custom-close');
+  if (closeButton) {
+    closeButton.disabled = !enabled;
+  }
+};
+
+const invalidateCustomUiOpen = () => {
+  customUiOpenGeneration += 1;
+};
 
 const log = (label, value) => {
   const line = typeof value === 'string' ? value : JSON.stringify(value);
@@ -171,6 +183,8 @@ document.getElementById('open-custom-ui').addEventListener('click', async () => 
     log('error', 'Custom UI (toBack) requires iOS or Android');
     return;
   }
+  const openGeneration = ++customUiOpenGeneration;
+  setCustomCloseEnabled(false);
   try {
     setCustomUiVisible(true);
     zoom = 1;
@@ -183,13 +197,23 @@ document.getElementById('open-custom-ui').addEventListener('click', async () => 
       scrollMode: 'continuous',
       page: 1,
     });
+    if (openGeneration !== customUiOpenGeneration) {
+      return;
+    }
     currentPage = result.page;
     pageCount = result.pageCount;
     refreshCustomIndicator();
     log('open custom ui', result);
   } catch (error) {
+    if (openGeneration !== customUiOpenGeneration) {
+      return;
+    }
     setCustomUiVisible(false);
     log('error', error?.message ?? error);
+  } finally {
+    if (openGeneration === customUiOpenGeneration) {
+      setCustomCloseEnabled(true);
+    }
   }
 });
 
@@ -278,9 +302,13 @@ document.getElementById('custom-zoom-in').addEventListener('click', async () => 
 });
 
 document.getElementById('custom-close').addEventListener('click', async () => {
+  invalidateCustomUiOpen();
+  setCustomCloseEnabled(false);
   try {
     await PdfViewer.close();
   } catch (error) {
     log('error', error?.message ?? error);
+  } finally {
+    setCustomCloseEnabled(true);
   }
 });

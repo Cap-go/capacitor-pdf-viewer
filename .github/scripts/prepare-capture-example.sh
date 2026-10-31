@@ -12,6 +12,19 @@ esac
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 tmp_root="${RUNNER_TEMP:-$(mktemp -d)}"
+owns_tmp_root=false
+if [ -z "${RUNNER_TEMP:-}" ]; then
+  owns_tmp_root=true
+fi
+
+cleanup_tmp_on_failure() {
+  local status=$?
+  if [ "$status" -ne 0 ] && [ "$owns_tmp_root" = true ]; then
+    rm -rf "$tmp_root"
+  fi
+}
+trap cleanup_tmp_on_failure EXIT
+
 path_file="${CAPTURE_EXAMPLE_PATH_FILE:-$tmp_root/capture-example-path.txt}"
 
 # shellcheck source=pack-plugin-example.sh

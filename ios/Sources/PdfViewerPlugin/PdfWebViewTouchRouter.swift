@@ -45,13 +45,6 @@ final class PdfWebViewTouchRouterView: UIView {
     private func shouldRouteToPdf(point: CGPoint, pointInWeb: CGPoint, event: UIEvent?) -> Bool {
         guard let webView else { return false }
 
-        if let webHit = webView.hitTest(pointInWeb, with: event),
-           webHit !== webView,
-           webHit !== webView.scrollView
-        {
-            return false
-        }
-
         if overlayRects.contains(where: { $0.contains(pointInWeb) }) {
             return false
         }
@@ -73,10 +66,7 @@ final class PdfWebViewTouchRouterView: UIView {
         }
         guard let pdfTarget else { return webView.hitTest(pointInWeb, with: event) }
         let pointInPdf = convert(point, to: pdfTarget)
-        guard pdfTarget.bounds.contains(pointInPdf) else {
-            return webView.hitTest(pointInWeb, with: event)
-        }
-        return pdfTarget.hitTest(pointInPdf, with: event)
+        return pdfTarget.hitTest(pointInPdf, with: event) ?? pdfTarget
     }
 }
 

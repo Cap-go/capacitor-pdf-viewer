@@ -24,16 +24,10 @@ internal class PdfUnderWebViewTouchRouter(
     companion object {
         private const val INTERACTIVE_SELECTOR =
             "button, a, input, textarea, select, label, [data-capgo-pdf-interactive], .custom-toolbar, .custom-pdf-ui button"
-    }
 
-    private var installed = false
-    private var routingEnabled = true
-    private var activeRoute = TouchRoute.UNDECIDED
-    private var overlayRectsCss: List<RectF> = emptyList()
-
-    private val overlayProbeJs = """
+        internal fun buildOverlayProbeJs(): String =
+            """
         (function(){
-          if (!window.__capgoPdfTouchOverlay || !window.__capgoPdfTouchOverlay.active) return '[]';
           var sel = '$INTERACTIVE_SELECTOR';
           var nodes = document.querySelectorAll(sel);
           var out = [];
@@ -48,7 +42,18 @@ internal class PdfUnderWebViewTouchRouter(
           }
           return JSON.stringify(out);
         })();
-    """.trimIndent()
+            """.trimIndent()
+
+        internal val overlayProbeScriptForTests: String
+            get() = buildOverlayProbeJs()
+    }
+
+    private var installed = false
+    private var routingEnabled = true
+    private var activeRoute = TouchRoute.UNDECIDED
+    private var overlayRectsCss: List<RectF> = emptyList()
+
+    private val overlayProbeJs = buildOverlayProbeJs()
 
     private val overlayObserverJs = """
         (function(){
@@ -227,9 +232,6 @@ internal class PdfUnderWebViewTouchRouter(
     }
 
     private fun transformToPdfView(event: MotionEvent): MotionEvent? {
-        if (!isMappedInsidePdfView(event)) {
-            return null
-        }
         val webLoc = IntArray(2)
         val pdfLoc = IntArray(2)
         webView.getLocationOnScreen(webLoc)
