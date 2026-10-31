@@ -156,7 +156,13 @@ export class PdfViewerWeb extends WebPlugin implements PdfViewerPlugin {
   }
 
   async nextPage(): Promise<void> {
-    await this.goToPage({ page: Math.min(this.pageCount, this.page + 1) });
+    if (!this.frame) {
+      throw new Error('No PDF is open');
+    }
+    if (this.page >= this.pageCount) {
+      return;
+    }
+    await this.goToPage({ page: this.page + 1 });
   }
 
   async previousPage(): Promise<void> {

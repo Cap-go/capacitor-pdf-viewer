@@ -18,16 +18,20 @@ path_file="${CAPTURE_EXAMPLE_PATH_FILE:-$tmp_root/capture-example-path.txt}"
 source "$repo_root/.github/scripts/pack-plugin-example.sh"
 pack_plugin_example_app "$repo_root" "$tmp_root"
 
+bun run build
+
 case "$platform" in
   android)
     if [ ! -d android ]; then
       bunx cap add android
     fi
+    bunx cap sync android
     ;;
   ios)
     if [ ! -d ios ]; then
       bunx cap add ios
     fi
+    bunx cap sync ios
     ;;
 esac
 

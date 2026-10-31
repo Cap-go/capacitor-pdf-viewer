@@ -123,6 +123,25 @@ describe('PdfViewerWeb', () => {
     expect(frame.src).toContain('#page=2');
   });
 
+  it('nextPage is a no-op when page is at or beyond pageCount', async () => {
+    await viewer.open({
+      source: SAMPLE_PDF_BASE64,
+      sourceType: 'base64',
+      mode: 'fullscreen',
+      page: 1,
+    });
+    const { pageCount } = await viewer.getPageCount();
+    await viewer.goToPage({ page: pageCount + 5 });
+    const frame = document.querySelector('iframe[title="PDF Viewer"]') as HTMLIFrameElement;
+    expect(frame.src).toContain(`#page=${pageCount + 5}`);
+    await viewer.nextPage();
+    expect(frame.src).toContain(`#page=${pageCount + 5}`);
+  });
+
+  it('rejects nextPage when no document is open', async () => {
+    await expect(viewer.nextPage()).rejects.toThrow('No PDF is open');
+  });
+
   it('does not emit error when a superseded url download fails', async () => {
     const racingViewer = new PdfViewerWeb();
     const errorEvents: { message: string }[] = [];

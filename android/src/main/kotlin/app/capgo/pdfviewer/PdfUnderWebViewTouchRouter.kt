@@ -137,12 +137,14 @@ internal class PdfUnderWebViewTouchRouter(
             MotionEvent.ACTION_POINTER_DOWN -> {
                 // Keep the route chosen on ACTION_DOWN for the whole gesture.
             }
-            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                activeRoute = TouchRoute.UNDECIDED
-            }
         }
 
-        when (activeRoute) {
+        val route = activeRoute
+        if (event.actionMasked == MotionEvent.ACTION_UP || event.actionMasked == MotionEvent.ACTION_CANCEL) {
+            activeRoute = TouchRoute.UNDECIDED
+        }
+
+        when (route) {
             TouchRoute.WEB, TouchRoute.UNDECIDED -> return@OnTouchListener false
             TouchRoute.PDF -> {
                 val transformed = transformToPdfView(event) ?: return@OnTouchListener false
