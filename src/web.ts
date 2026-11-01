@@ -43,6 +43,13 @@ export class PdfViewerWeb extends WebPlugin implements PdfViewerPlugin {
     const mode = options.mode ?? 'fullscreen';
     const showNativeUi = options.nativeUi ?? mode === 'fullscreen';
 
+    if (mode === 'fullscreen' && options.nativeUi === false) {
+      const message =
+        'nativeUi: false with fullscreen is not supported on web. Use inline mode with elementId, or call close() from your app.';
+      this.notifyListeners('error', { message });
+      throw this.unavailable(message);
+    }
+
     if (mode === 'inline' && !options.elementId) {
       const message = 'elementId is required when mode is inline';
       this.notifyListeners('error', { message });

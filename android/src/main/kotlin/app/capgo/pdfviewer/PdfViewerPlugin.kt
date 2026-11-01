@@ -473,7 +473,9 @@ class PdfViewerPlugin : Plugin() {
     }
 
     private fun optionalDouble(obj: JSObject, key: String): Double? {
-        return if (obj.has(key)) obj.getDouble(key) else null
+        if (!obj.has(key) || obj.isNull(key)) return null
+        val value = obj.optDouble(key, Double.NaN)
+        return if (value.isNaN()) null else value
     }
 
     private fun optionalDouble(call: PluginCall, key: String): Double? {
