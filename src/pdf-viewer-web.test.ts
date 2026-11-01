@@ -40,6 +40,20 @@ describe('PdfViewerWeb', () => {
     ).rejects.toThrow(/not supported on web/i);
   });
 
+  it('keeps the current viewer when rejecting fullscreen with nativeUi false', async () => {
+    await viewer.open({
+      source: SAMPLE_PDF_BASE64,
+      sourceType: 'base64',
+      mode: 'fullscreen',
+    });
+    const frameBefore = document.querySelector('iframe[title="PDF Viewer"]');
+    expect(frameBefore).not.toBeNull();
+    await expect(
+      viewer.open({ source: SAMPLE_PDF_BASE64, sourceType: 'base64', mode: 'fullscreen', nativeUi: false }),
+    ).rejects.toThrow(/not supported on web/i);
+    expect(document.querySelector('iframe[title="PDF Viewer"]')).toBe(frameBefore);
+  });
+
   it('opens url sources with forwarded headers', async () => {
     const pdfBytes = Uint8Array.from(atob(SAMPLE_PDF_BASE64), (char) => char.charCodeAt(0));
     const originalFetch = globalThis.fetch;

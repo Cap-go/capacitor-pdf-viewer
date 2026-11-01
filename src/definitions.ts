@@ -109,6 +109,9 @@ export interface OpenPdfOptions {
    * When false, hides all native chrome (close button, toolbars). Defaults to false when `toBack` or
    * `mode` is `underWebView`, otherwise true for fullscreen.
    *
+   * On web, `nativeUi: false` with `mode: 'fullscreen'` is rejected. Use `inline` mode with `elementId`,
+   * or keep `nativeUi` enabled.
+   *
    * @since 8.0.0
    */
   nativeUi?: boolean;
@@ -375,7 +378,10 @@ export interface PdfViewerPlugin {
   getCurrentPage(): Promise<PdfCurrentPageResult>;
 
   /**
-   * Hide the PDF viewer layer without unloading the document (native underWebView layer or web iframe host).
+   * Hide the PDF viewer layer without unloading the document.
+   *
+   * Android and web accept this in any open mode (fullscreen, inline, or underWebView).
+   * iOS accepts it only in `underWebView` or `inline` mode and rejects other modes.
    *
    * @since 8.0.0
    */
@@ -383,6 +389,8 @@ export interface PdfViewerPlugin {
 
   /**
    * Show the PDF viewer layer after {@link PdfViewerPlugin.hide}.
+   *
+   * Android and web accept this in any open mode. iOS accepts it only in `underWebView` or `inline` mode.
    *
    * @since 8.0.0
    */

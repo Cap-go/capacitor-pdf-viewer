@@ -36,12 +36,7 @@ export class PdfViewerWeb extends WebPlugin implements PdfViewerPlugin {
   async open(options: OpenPdfOptions): Promise<OpenPdfResult> {
     this.rejectUnderWebView(options);
 
-    const token = ++this.openToken;
-    await this.closeInternal(false);
-
-    const sourceType = options.sourceType ?? inferSourceType(options.source);
     const mode = options.mode ?? 'fullscreen';
-    const showNativeUi = options.nativeUi ?? mode === 'fullscreen';
 
     if (mode === 'fullscreen' && options.nativeUi === false) {
       const message =
@@ -55,6 +50,12 @@ export class PdfViewerWeb extends WebPlugin implements PdfViewerPlugin {
       this.notifyListeners('error', { message });
       throw new Error(message);
     }
+
+    const token = ++this.openToken;
+    await this.closeInternal(false);
+
+    const sourceType = options.sourceType ?? inferSourceType(options.source);
+    const showNativeUi = options.nativeUi ?? mode === 'fullscreen';
 
     try {
       const { blobUrl, revoke } = await sourceToBlobUrl(options.source, sourceType, options.headers);

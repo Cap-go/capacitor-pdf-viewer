@@ -472,7 +472,7 @@ final class PdfViewerSession: NSObject, PDFViewDelegate {
             object: pdfView,
             queue: .main
         ) { [weak self] _ in
-            guard let self else { return }
+            guard let self, !pdfView.autoScales else { return }
             let relative = pdfView.scaleFactor / max(self.baseScale, 0.01)
             self.emitZoom(relativeScale: relative)
         }

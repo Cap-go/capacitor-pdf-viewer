@@ -26,6 +26,14 @@ let currentPage = 1;
 let pageCount = 1;
 let zoom = 1;
 let customUiOpenGeneration = 0;
+let autoOpenCustomUiTimer = null;
+
+const cancelAutoOpenCustomUi = () => {
+  if (autoOpenCustomUiTimer != null) {
+    window.clearTimeout(autoOpenCustomUiTimer);
+    autoOpenCustomUiTimer = null;
+  }
+};
 
 const setCustomCloseEnabled = (enabled) => {
   const closeButton = document.getElementById('custom-close');
@@ -113,7 +121,8 @@ if (shouldAutoOpenCustomUi) {
     document.documentElement.classList.add('custom-pdf-capture-ready');
     setCustomUiVisible(true);
   }
-  window.setTimeout(() => {
+  autoOpenCustomUiTimer = window.setTimeout(() => {
+    autoOpenCustomUiTimer = null;
     document.getElementById('open-custom-ui')?.click();
   }, 1200);
 }
@@ -141,6 +150,7 @@ if (!Capacitor.isNativePlatform()) {
 
 document.getElementById('open-fullscreen').addEventListener('click', async () => {
   try {
+    cancelAutoOpenCustomUi();
     setCustomUiVisible(false);
     zoom = 1;
     const result = await PdfViewer.open({
@@ -160,6 +170,7 @@ document.getElementById('open-fullscreen').addEventListener('click', async () =>
 
 document.getElementById('open-inline').addEventListener('click', async () => {
   try {
+    cancelAutoOpenCustomUi();
     setCustomUiVisible(false);
     zoom = 1;
     const result = await PdfViewer.open({
@@ -183,6 +194,7 @@ document.getElementById('open-custom-ui').addEventListener('click', async () => 
     log('error', 'Custom UI (toBack) requires iOS or Android');
     return;
   }
+  cancelAutoOpenCustomUi();
   const openGeneration = ++customUiOpenGeneration;
   setCustomCloseEnabled(false);
   try {

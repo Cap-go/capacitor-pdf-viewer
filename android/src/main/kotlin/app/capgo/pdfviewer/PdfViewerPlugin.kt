@@ -66,7 +66,11 @@ class PdfViewerPlugin : Plugin() {
                     try {
                         present(opened, mode, elementId, page, scrollMode, nativeUi, call)
                     } catch (error: Exception) {
-                        opened.close()
+                        val owned = document === opened
+                        dismiss(emitClose = false)
+                        if (!owned) {
+                            opened.close()
+                        }
                         val message = error.message ?: "Failed to present PDF"
                         notifyListeners("error", JSObject().put("message", message))
                         call.reject(message)
@@ -479,7 +483,10 @@ class PdfViewerPlugin : Plugin() {
     }
 
     private fun optionalDouble(call: PluginCall, key: String): Double? {
-        return if (call.getData().has(key)) call.getDouble(key) else null
+        val data = call.getData()
+        if (!data.has(key) || data.isNull(key)) return null
+        val value = data.optDouble(key, Double.NaN)
+        return if (value.isNaN()) null else value
     }
 
     private data class LayoutCss(
