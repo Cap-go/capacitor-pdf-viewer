@@ -67,7 +67,7 @@ public class PdfViewerPlugin: CAPPlugin, CAPBridgedPlugin {
                         headers: headers,
                         password: password
                     )
-                    DispatchQueue.main.async {
+                    DispatchQueue.main.async { [weak self] in
                         guard let self else { return }
                         guard generation == self.openGeneration else {
                             call.reject("PDF open was superseded")
@@ -86,7 +86,7 @@ public class PdfViewerPlugin: CAPPlugin, CAPBridgedPlugin {
                         active.present(request: request, call: call)
                     }
                 } catch {
-                    DispatchQueue.main.async {
+                    DispatchQueue.main.async { [weak self] in
                         guard let self else { return }
                         guard generation == self.openGeneration else {
                             call.reject("PDF open was superseded")
