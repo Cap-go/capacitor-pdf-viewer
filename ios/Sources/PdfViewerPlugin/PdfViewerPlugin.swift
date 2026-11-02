@@ -24,6 +24,7 @@ public class PdfViewerPlugin: CAPPlugin, CAPBridgedPlugin {
 
     private let implementation = PdfViewer()
     private var session: PdfViewerSession?
+    private var openGeneration = 0
 
     @objc func open(_ call: CAPPluginCall) {
         guard let source = call.getString("source"), !source.isEmpty else {
@@ -53,33 +54,48 @@ public class PdfViewerPlugin: CAPPlugin, CAPBridgedPlugin {
             return
         }
 
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            do {
-                let document = try PdfViewer.loadDocument(
-                    source: source,
-                    sourceType: sourceType,
-                    headers: headers,
-                    password: password
-                )
-                DispatchQueue.main.async {
-                    guard let self else { return }
-                    let active = self.ensureSession()
-                    let request = PdfOpenRequest(
-                        document: document,
-                        mode: mode,
-                        elementId: elementId,
-                        page: page,
-                        scrollMode: scrollMode,
-                        nativeUi: nativeUi,
-                        layout: layout
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.openGeneration += 1
+            let generation = self.openGeneration
+
+            DispatchQueue.global(qos: .userInitiated).async {
+                do {
+                    let document = try PdfViewer.loadDocument(
+                        source: source,
+                        sourceType: sourceType,
+                        headers: headers,
+                        password: password
                     )
-                    active.present(request: request, call: call)
-                }
-            } catch {
-                DispatchQueue.main.async {
-                    let message = error.localizedDescription
-                    self?.notifyListeners("error", data: ["message": message])
-                    call.reject(message)
+                    DispatchQueue.main.async {
+                        guard let self else { return }
+                        guard generation == self.openGeneration else {
+                            call.reject("PDF open was superseded")
+                            return
+                        }
+                        let active = self.ensureSession()
+                        let request = PdfOpenRequest(
+                            document: document,
+                            mode: mode,
+                            elementId: elementId,
+                            page: page,
+                            scrollMode: scrollMode,
+                            nativeUi: nativeUi,
+                            layout: layout
+                        )
+                        active.present(request: request, call: call)
+                    }
+                } catch {
+                    DispatchQueue.main.async {
+                        guard let self else { return }
+                        guard generation == self.openGeneration else {
+                            call.reject("PDF open was superseded")
+                            return
+                        }
+                        let message = error.localizedDescription
+                        self.notifyListeners("error", data: ["message": message])
+                        call.reject(message)
+                    }
                 }
             }
         }
@@ -87,6 +103,7 @@ public class PdfViewerPlugin: CAPPlugin, CAPBridgedPlugin {
 
     @objc func close(_ call: CAPPluginCall) {
         DispatchQueue.main.async { [weak self] in
+            self?.openGeneration += 1
             self?.session?.dismiss(emitClose: true)
             call.resolve()
         }

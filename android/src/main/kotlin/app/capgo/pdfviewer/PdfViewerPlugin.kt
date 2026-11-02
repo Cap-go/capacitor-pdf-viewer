@@ -12,11 +12,13 @@ import com.getcapacitor.PluginMethod
 import com.getcapacitor.annotation.CapacitorPlugin
 import io.legere.pdfiumandroid.PdfDocument
 import org.json.JSONObject
+import java.util.concurrent.atomic.AtomicLong
 
 @CapacitorPlugin(name = "PdfViewer")
 class PdfViewerPlugin : Plugin() {
 
     private lateinit var implementation: PdfViewer
+    private val openGeneration = AtomicLong(0)
     private var document: PdfDocument? = null
     private var host: FrameLayout? = null
     private var viewer: PdfViewerView? = null
@@ -59,10 +61,16 @@ class PdfViewerPlugin : Plugin() {
             return
         }
 
+        val generation = openGeneration.incrementAndGet()
         Thread {
             try {
                 val opened = implementation.openDocument(source, sourceType, headers, password)
                 bridge.activity.runOnUiThread {
+                    if (generation != openGeneration.get()) {
+                        opened.close()
+                        call.reject("PDF open was superseded")
+                        return@runOnUiThread
+                    }
                     try {
                         present(opened, mode, elementId, page, scrollMode, nativeUi, call)
                     } catch (error: Exception) {
@@ -79,6 +87,10 @@ class PdfViewerPlugin : Plugin() {
             } catch (error: Exception) {
                 val message = error.message ?: "Failed to open PDF"
                 bridge.activity.runOnUiThread {
+                    if (generation != openGeneration.get()) {
+                        call.reject("PDF open was superseded")
+                        return@runOnUiThread
+                    }
                     notifyListeners("error", JSObject().put("message", message))
                     call.reject(message)
                 }
@@ -88,6 +100,7 @@ class PdfViewerPlugin : Plugin() {
 
     @PluginMethod
     fun close(call: PluginCall) {
+        openGeneration.incrementAndGet()
         bridge.activity.runOnUiThread {
             dismiss(emitClose = true)
             call.resolve()
