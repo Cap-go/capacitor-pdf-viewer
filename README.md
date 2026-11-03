@@ -165,7 +165,7 @@ body.pdf-reading {
 }
 ```
 
-On Android and iOS the plugin places the PDF below the WebView, makes the WebView stack transparent, and routes touches outside interactive HTML controls to the native PDF view. The native touch router treats these DOM nodes as interactive (their `getBoundingClientRect()` regions receive WebView touches; everything else can go to the PDF when `pointer-events` allows it):
+On Android and iOS the plugin places the PDF below the WebView, makes the WebView stack transparent, and routes touches outside interactive HTML controls to the native PDF view. The native touch router treats only nodes matching the selectors below as interactive (their `getBoundingClientRect()` regions receive WebView touches). Touches outside those regions go to the PDF. `pointer-events` is checked only on matched nodes, not on arbitrary DOM elements:
 
 - `button`, `a`, `input`, `textarea`, `select`, `label`
 - any element with **`data-capgo-pdf-interactive`** (use this on a toolbar container so the whole bar stays tappable)

@@ -314,6 +314,7 @@ document.getElementById('custom-zoom-in').addEventListener('click', async () => 
 });
 
 document.getElementById('custom-close').addEventListener('click', async () => {
+  cancelAutoOpenCustomUi();
   invalidateCustomUiOpen();
   setCustomCloseEnabled(false);
   try {

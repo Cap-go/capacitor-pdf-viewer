@@ -138,10 +138,13 @@ final class PdfViewerSession: NSObject, PDFViewDelegate {
             call.reject("No PDF is open")
             return
         }
+        let previousScale = pdfView.scaleFactor
         pdfView.autoScales = false
         let applied = max(0.1, baseScale * scale)
         pdfView.scaleFactor = applied
-        emitZoom(relativeScale: applied / max(baseScale, 0.01))
+        if pdfView.scaleFactor == previousScale {
+            emitZoom(relativeScale: pdfView.scaleFactor / max(baseScale, 0.01))
+        }
         call.resolve()
     }
 
@@ -348,6 +351,14 @@ final class PdfViewerSession: NSObject, PDFViewDelegate {
 
     private func applyUnderWebViewFrame(to container: UIView) {
         guard let webView else { return }
+        var autoresizingMask: UIView.AutoresizingMask = []
+        if layout.width == nil {
+            autoresizingMask.insert(.flexibleWidth)
+        }
+        if layout.height == nil {
+            autoresizingMask.insert(.flexibleHeight)
+        }
+        container.autoresizingMask = autoresizingMask
         let bounds = webView.bounds
         let x = layout.x ?? 0
         let y = layout.y ?? 0

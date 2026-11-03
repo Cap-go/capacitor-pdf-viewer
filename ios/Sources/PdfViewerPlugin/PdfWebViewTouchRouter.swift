@@ -42,9 +42,7 @@ final class PdfWebViewTouchRouterView: UIView {
         }
     }
 
-    private func shouldRouteToPdf(point: CGPoint, pointInWeb: CGPoint, event: UIEvent?) -> Bool {
-        guard let webView else { return false }
-
+    private func shouldRouteToPdf(point: CGPoint, pointInWeb: CGPoint, event _: UIEvent?) -> Bool {
         if overlayRects.contains(where: { $0.contains(pointInWeb) }) {
             return false
         }
@@ -217,6 +215,7 @@ final class PdfWebViewTouchRouter: NSObject {
 
     func refreshOverlayRegions() {
         guard let webView, let wrapperView else { return }
+        webView.evaluateJavaScript(overlayObserverJs, completionHandler: nil)
         webView.evaluateJavaScript(overlayProbeJs) { [weak wrapperView] result, _ in
             wrapperView?.overlayRects = Self.parseOverlayRects(from: result)
         }
@@ -257,17 +256,7 @@ final class PdfWebViewTouchRouter: NSObject {
     }
 
     private static func parseOverlayRects(from value: Any?) -> [CGRect] {
-        let json: String?
-        if let string = value as? String {
-            json = string
-        } else if let data = try? JSONSerialization.data(withJSONObject: value),
-                  let encoded = String(data: data, encoding: .utf8)
-        {
-            json = encoded
-        } else {
-            json = nil
-        }
-        guard let json,
+        guard let json = value as? String,
               let data = json.data(using: .utf8),
               let array = try? JSONSerialization.jsonObject(with: data) as? [[String: Double]]
         else {

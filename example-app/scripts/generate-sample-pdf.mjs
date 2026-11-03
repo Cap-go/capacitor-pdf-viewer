@@ -97,7 +97,7 @@ drawParagraph(
 drawParagraph(
   page2,
   body,
-  'Swipe horizontally or use the toolbar to return to page one. Close ends the session and restores the example app shell.',
+  'Swipe vertically or use the toolbar to return to page one. Close ends the session and restores the example app shell.',
   72,
   560,
   13,

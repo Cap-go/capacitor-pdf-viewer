@@ -178,6 +178,7 @@ internal class PdfUnderWebViewTouchRouter(
     }
 
     fun refreshOverlayRegions() {
+        webView.evaluateJavascript(overlayObserverJs, null)
         webView.evaluateJavascript(overlayProbeJs) { raw ->
             overlayRectsCss = parseOverlayRects(raw)
         }
