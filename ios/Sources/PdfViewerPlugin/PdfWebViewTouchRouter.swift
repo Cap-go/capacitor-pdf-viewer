@@ -12,9 +12,7 @@ private final class PdfWebViewReloadNavigationDelegate: NSObject, WKNavigationDe
         decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
     ) {
         pendingReload = navigationAction.navigationType == .reload
-        if let forward,
-           forward.responds(to: #selector(WKNavigationDelegate.webView(_:decidePolicyFor:decisionHandler:)))
-        {
+        if let forward {
             forward.webView?(webView, decidePolicyFor: navigationAction, decisionHandler: decisionHandler)
         } else {
             decisionHandler(.allow)
@@ -26,9 +24,7 @@ private final class PdfWebViewReloadNavigationDelegate: NSObject, WKNavigationDe
             onReloadFinish?()
             pendingReload = false
         }
-        if let forward, forward.responds(to: #selector(WKNavigationDelegate.webView(_:didFinish:))) {
-            forward.webView?(webView, didFinish: navigation)
-        }
+        forward?.webView?(webView, didFinish: navigation)
     }
 
     override func responds(to aSelector: Selector!) -> Bool {
