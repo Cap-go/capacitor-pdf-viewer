@@ -1,6 +1,48 @@
 import UIKit
 import WebKit
 
+private final class PdfWebViewReloadNavigationDelegate: NSObject, WKNavigationDelegate {
+    weak var forward: WKNavigationDelegate?
+    var onReloadFinish: (() -> Void)?
+    private var pendingReload = false
+
+    func webView(
+        _ webView: WKWebView,
+        decidePolicyFor navigationAction: WKNavigationAction,
+        decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
+    ) {
+        pendingReload = navigationAction.navigationType == .reload
+        if let forward,
+           forward.responds(to: #selector(WKNavigationDelegate.webView(_:decidePolicyFor:decisionHandler:)))
+        {
+            forward.webView?(webView, decidePolicyFor: navigationAction, decisionHandler: decisionHandler)
+        } else {
+            decisionHandler(.allow)
+        }
+    }
+
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        if pendingReload {
+            onReloadFinish?()
+            pendingReload = false
+        }
+        if let forward, forward.responds(to: #selector(WKNavigationDelegate.webView(_:didFinish:))) {
+            forward.webView?(webView, didFinish: navigation)
+        }
+    }
+
+    override func responds(to aSelector: Selector!) -> Bool {
+        super.responds(to: aSelector) || (forward?.responds(to: aSelector) ?? false)
+    }
+
+    override func forwardingTarget(for aSelector: Selector!) -> Any? {
+        if forward?.responds(to: aSelector) == true {
+            return forward
+        }
+        return super.forwardingTarget(for: aSelector)
+    }
+}
+
 final class PdfWebViewTouchRouterView: UIView {
     weak var webView: WKWebView?
     weak var pdfTarget: UIView?
@@ -84,6 +126,7 @@ final class PdfWebViewTouchRouter: NSObject {
     private weak var pdfTarget: UIView?
     private var wrapperView: PdfWebViewTouchRouterView?
     private var overlayMessageHandler: PdfTouchOverlayScriptHandler?
+    private var reloadNavigationDelegate: PdfWebViewReloadNavigationDelegate?
     private let messageHandlerName = "capgoPdfTouchOverlay"
 
     private var overlayProbeJs: String {
@@ -202,6 +245,13 @@ final class PdfWebViewTouchRouter: NSObject {
         handler.router = self
         overlayMessageHandler = handler
         webView.configuration.userContentController.add(handler, name: messageHandlerName)
+        let reloadDelegate = PdfWebViewReloadNavigationDelegate()
+        reloadDelegate.forward = webView.navigationDelegate
+        reloadDelegate.onReloadFinish = { [weak self] in
+            self?.refreshOverlayRegions()
+        }
+        reloadNavigationDelegate = reloadDelegate
+        webView.navigationDelegate = reloadDelegate
         refreshOverlayRegions()
         webView.evaluateJavaScript(overlayObserverJs, completionHandler: nil)
     }
@@ -232,6 +282,10 @@ final class PdfWebViewTouchRouter: NSObject {
 
     func uninstall() {
         if let webView {
+            if let reloadNavigationDelegate {
+                webView.navigationDelegate = reloadNavigationDelegate.forward
+            }
+            reloadNavigationDelegate = nil
             webView.evaluateJavaScript(overlayTeardownJs, completionHandler: nil)
             webView.configuration.userContentController.removeScriptMessageHandler(forName: messageHandlerName)
         }

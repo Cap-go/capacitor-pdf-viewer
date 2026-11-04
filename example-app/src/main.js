@@ -319,6 +319,7 @@ document.getElementById('custom-close').addEventListener('click', async () => {
   setCustomCloseEnabled(false);
   try {
     await PdfViewer.close();
+    setCustomUiVisible(false);
   } catch (error) {
     log('error', error?.message ?? error);
   } finally {
