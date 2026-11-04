@@ -365,6 +365,13 @@ class PdfViewerPlugin : Plugin() {
         }
     }
 
+    private fun layoutDimensionPx(css: Double?, density: Float, webViewSize: Int): Int {
+        if (css == null || css <= 0.0) {
+            return webViewSize.takeIf { it > 0 } ?: ViewGroup.LayoutParams.MATCH_PARENT
+        }
+        return (css * density).toInt().coerceAtLeast(1)
+    }
+
     private fun applyUnderWebViewLayout(container: FrameLayout) {
         val webView = bridge.webView
         val density = resources.displayMetrics.density
@@ -373,12 +380,8 @@ class PdfViewerPlugin : Plugin() {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT,
             )
-        lp.width = layoutCss.width?.let { (it * density).toInt() }
-            ?: webView.width.takeIf { it > 0 }
-            ?: ViewGroup.LayoutParams.MATCH_PARENT
-        lp.height = layoutCss.height?.let { (it * density).toInt() }
-            ?: webView.height.takeIf { it > 0 }
-            ?: ViewGroup.LayoutParams.MATCH_PARENT
+        lp.width = layoutDimensionPx(layoutCss.width, density, webView.width)
+        lp.height = layoutDimensionPx(layoutCss.height, density, webView.height)
         lp.leftMargin = ((layoutCss.x ?: 0.0) * density).toInt() + webView.left
         lp.topMargin = ((layoutCss.y ?: 0.0) * density).toInt() + webView.top
         container.layoutParams = lp

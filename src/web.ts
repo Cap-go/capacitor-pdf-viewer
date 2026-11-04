@@ -174,7 +174,13 @@ export class PdfViewerWeb extends WebPlugin implements PdfViewerPlugin {
   }
 
   async previousPage(): Promise<void> {
-    await this.goToPage({ page: Math.max(1, this.page - 1) });
+    if (!this.frame) {
+      throw new Error('No PDF is open');
+    }
+    if (this.page <= 1) {
+      return;
+    }
+    await this.goToPage({ page: this.page - 1 });
   }
 
   async setZoom(options: SetZoomOptions): Promise<void> {

@@ -6,13 +6,17 @@ private final class PdfWebViewReloadNavigationDelegate: NSObject, WKNavigationDe
     var onReloadFinish: (() -> Void)?
     private var pendingReload = false
 
+    private static let navigationActionPolicySelector: Selector = NSSelectorFromString(
+        "webView:decidePolicyForNavigationAction:decisionHandler:"
+    )
+
     func webView(
         _ webView: WKWebView,
         decidePolicyFor navigationAction: WKNavigationAction,
         decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
     ) {
         pendingReload = navigationAction.navigationType == .reload
-        if let forward {
+        if let forward, forward.responds(to: Self.navigationActionPolicySelector) {
             forward.webView?(webView, decidePolicyFor: navigationAction, decisionHandler: decisionHandler)
         } else {
             decisionHandler(.allow)

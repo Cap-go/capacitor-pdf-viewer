@@ -162,6 +162,29 @@ describe('PdfViewerWeb', () => {
     await expect(viewer.nextPage()).rejects.toThrow('No PDF is open');
   });
 
+  it('previousPage is a no-op on page 1', async () => {
+    const pageChanges: unknown[] = [];
+    await viewer.addListener('pageChange', (event) => {
+      pageChanges.push(event);
+    });
+    await viewer.open({
+      source: SAMPLE_PDF_BASE64,
+      sourceType: 'base64',
+      mode: 'fullscreen',
+      page: 1,
+    });
+    const frame = document.querySelector('iframe[title="PDF Viewer"]') as HTMLIFrameElement;
+    expect(frame.src).toContain('#page=1');
+    const countAfterOpen = pageChanges.length;
+    await viewer.previousPage();
+    expect(frame.src).toContain('#page=1');
+    expect(pageChanges.length).toBe(countAfterOpen);
+  });
+
+  it('rejects previousPage when no document is open', async () => {
+    await expect(viewer.previousPage()).rejects.toThrow('No PDF is open');
+  });
+
   it('does not emit error when a superseded url download fails', async () => {
     const racingViewer = new PdfViewerWeb();
     const errorEvents: { message: string }[] = [];
