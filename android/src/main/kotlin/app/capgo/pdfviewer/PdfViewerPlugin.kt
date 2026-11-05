@@ -52,7 +52,7 @@ class PdfViewerPlugin : Plugin() {
         val scrollMode = call.getString("scrollMode") ?: "continuous"
         val headers = stringMap(call.getObject("headers"))
         val nativeUi = call.getBoolean("nativeUi", mode != "underWebView") == true
-        layoutCss = readLayout(call.getObject("layout"))
+        val requestedLayout = readLayout(call.getObject("layout"))
 
         if (mode == "inline" && elementId.isNullOrBlank()) {
             val message = "elementId is required when mode is inline"
@@ -72,7 +72,7 @@ class PdfViewerPlugin : Plugin() {
                         return@runOnUiThread
                     }
                     try {
-                        present(opened, mode, elementId, page, scrollMode, nativeUi, call)
+                        present(opened, mode, elementId, page, scrollMode, nativeUi, requestedLayout, call)
                     } catch (error: Exception) {
                         val owned = document === opened
                         dismiss(emitClose = false)
@@ -240,9 +240,11 @@ class PdfViewerPlugin : Plugin() {
         page: Int,
         scrollMode: String,
         nativeUi: Boolean,
+        requestedLayout: LayoutCss,
         call: PluginCall,
     ) {
         dismiss(emitClose = false)
+        layoutCss = requestedLayout
         document = opened
         pageCount = opened.getPageCount()
         currentPage = PdfViewerHelpers.oneBasedPage(

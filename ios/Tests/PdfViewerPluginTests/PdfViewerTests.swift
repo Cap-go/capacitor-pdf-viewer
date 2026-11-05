@@ -42,6 +42,13 @@ class PdfViewerTests: XCTestCase {
         XCTAssertEqual(PdfViewer.oneBasedPage(fromIndex: 2, pageCount: 3), 3)
     }
 
+    func testLayoutCssPositiveDimension() {
+        XCTAssertNil(PdfLayoutCss.positiveDimension(nil))
+        XCTAssertNil(PdfLayoutCss.positiveDimension(0))
+        XCTAssertNil(PdfLayoutCss.positiveDimension(-10))
+        XCTAssertEqual(PdfLayoutCss.positiveDimension(320), 320)
+    }
+
     func testGetPluginVersion() {
         let implementation = PdfViewer()
         XCTAssertEqual(implementation.getPluginVersion(), "native")

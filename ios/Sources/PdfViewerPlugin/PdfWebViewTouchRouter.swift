@@ -4,7 +4,6 @@ import WebKit
 private final class PdfWebViewReloadNavigationDelegate: NSObject, WKNavigationDelegate {
     weak var forward: WKNavigationDelegate?
     var onReloadFinish: (() -> Void)?
-    private var pendingReload = false
 
     private static let navigationActionPolicySelector: Selector = NSSelectorFromString(
         "webView:decidePolicyForNavigationAction:decisionHandler:"
@@ -15,7 +14,6 @@ private final class PdfWebViewReloadNavigationDelegate: NSObject, WKNavigationDe
         decidePolicyFor navigationAction: WKNavigationAction,
         decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
     ) {
-        pendingReload = navigationAction.navigationType == .reload
         if let forward, forward.responds(to: Self.navigationActionPolicySelector) {
             forward.webView?(webView, decidePolicyFor: navigationAction, decisionHandler: decisionHandler)
         } else {
@@ -24,10 +22,7 @@ private final class PdfWebViewReloadNavigationDelegate: NSObject, WKNavigationDe
     }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        if pendingReload {
-            onReloadFinish?()
-            pendingReload = false
-        }
+        onReloadFinish?()
         forward?.webView?(webView, didFinish: navigation)
     }
 

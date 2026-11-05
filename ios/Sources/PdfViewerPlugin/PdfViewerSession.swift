@@ -9,6 +9,11 @@ struct PdfLayoutCss {
     var y: CGFloat?
     var width: CGFloat?
     var height: CGFloat?
+
+    static func positiveDimension(_ value: CGFloat?) -> CGFloat? {
+        guard let value, value > 0 else { return nil }
+        return value
+    }
 }
 
 struct PdfOpenRequest {
@@ -351,19 +356,21 @@ final class PdfViewerSession: NSObject, PDFViewDelegate {
 
     private func applyUnderWebViewFrame(to container: UIView) {
         guard let webView else { return }
+        let explicitWidth = PdfLayoutCss.positiveDimension(layout.width)
+        let explicitHeight = PdfLayoutCss.positiveDimension(layout.height)
         var autoresizingMask: UIView.AutoresizingMask = []
-        if layout.width == nil {
+        if explicitWidth == nil {
             autoresizingMask.insert(.flexibleWidth)
         }
-        if layout.height == nil {
+        if explicitHeight == nil {
             autoresizingMask.insert(.flexibleHeight)
         }
         container.autoresizingMask = autoresizingMask
         let bounds = webView.bounds
         let x = layout.x ?? 0
         let y = layout.y ?? 0
-        let width = layout.width ?? bounds.width
-        let height = layout.height ?? bounds.height
+        let width = explicitWidth ?? bounds.width
+        let height = explicitHeight ?? bounds.height
         let rect = CGRect(x: x, y: y, width: width, height: height)
         if container.superview === webView {
             container.frame = rect

@@ -25,7 +25,7 @@ const bundledSample = async () => {
 let currentPage = 1;
 let pageCount = 1;
 let zoom = 1;
-let customUiOpenGeneration = 0;
+let demoOpenGeneration = 0;
 let autoOpenCustomUiTimer = null;
 
 const cancelAutoOpenCustomUi = () => {
@@ -43,7 +43,7 @@ const setCustomCloseEnabled = (enabled) => {
 };
 
 const invalidateCustomUiOpen = () => {
-  customUiOpenGeneration += 1;
+  demoOpenGeneration += 1;
 };
 
 const log = (label, value) => {
@@ -150,11 +150,16 @@ if (!Capacitor.isNativePlatform()) {
 
 document.getElementById('open-fullscreen').addEventListener('click', async () => {
   try {
+    const openGeneration = ++demoOpenGeneration;
     cancelAutoOpenCustomUi();
     setCustomUiVisible(false);
     zoom = 1;
+    const source = await bundledSample();
+    if (openGeneration !== demoOpenGeneration) {
+      return;
+    }
     const result = await PdfViewer.open({
-      source: await bundledSample(),
+      source,
       sourceType: 'base64',
       mode: 'fullscreen',
       page: 1,
@@ -170,11 +175,16 @@ document.getElementById('open-fullscreen').addEventListener('click', async () =>
 
 document.getElementById('open-inline').addEventListener('click', async () => {
   try {
+    const openGeneration = ++demoOpenGeneration;
     cancelAutoOpenCustomUi();
     setCustomUiVisible(false);
     zoom = 1;
+    const source = await bundledSample();
+    if (openGeneration !== demoOpenGeneration) {
+      return;
+    }
     const result = await PdfViewer.open({
-      source: await bundledSample(),
+      source,
       sourceType: 'base64',
       mode: 'inline',
       elementId: 'inline-pdf',
@@ -195,13 +205,17 @@ document.getElementById('open-custom-ui').addEventListener('click', async () => 
     return;
   }
   cancelAutoOpenCustomUi();
-  const openGeneration = ++customUiOpenGeneration;
+  const openGeneration = ++demoOpenGeneration;
   setCustomCloseEnabled(false);
   try {
     setCustomUiVisible(true);
     zoom = 1;
+    const source = await bundledSample();
+    if (openGeneration !== demoOpenGeneration) {
+      return;
+    }
     const result = await PdfViewer.open({
-      source: await bundledSample(),
+      source,
       sourceType: 'base64',
       mode: 'underWebView',
       toBack: true,
@@ -209,7 +223,7 @@ document.getElementById('open-custom-ui').addEventListener('click', async () => 
       scrollMode: 'continuous',
       page: 1,
     });
-    if (openGeneration !== customUiOpenGeneration) {
+    if (openGeneration !== demoOpenGeneration) {
       return;
     }
     currentPage = result.page;
@@ -217,13 +231,13 @@ document.getElementById('open-custom-ui').addEventListener('click', async () => 
     refreshCustomIndicator();
     log('open custom ui', result);
   } catch (error) {
-    if (openGeneration !== customUiOpenGeneration) {
+    if (openGeneration !== demoOpenGeneration) {
       return;
     }
     setCustomUiVisible(false);
     log('error', error?.message ?? error);
   } finally {
-    if (openGeneration === customUiOpenGeneration) {
+    if (openGeneration === demoOpenGeneration) {
       setCustomCloseEnabled(true);
     }
   }
