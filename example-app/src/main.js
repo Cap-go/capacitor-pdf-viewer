@@ -6,8 +6,9 @@ import { CapacitorUpdater } from '@capgo/capacitor-updater';
 
 const output = document.getElementById('plugin-output');
 const sampleUrl = new URL('/sample.pdf', window.location.origin).href;
+const customUi = document.getElementById('custom-pdf-ui');
+const customPageIndicator = document.getElementById('custom-page-indicator');
 
-// The WebView origin is not a network server, so native code cannot download it.
 const bundledSample = async () => {
   const response = await fetch(sampleUrl);
   if (!response.ok) {
@@ -24,11 +25,56 @@ const bundledSample = async () => {
 let currentPage = 1;
 let pageCount = 1;
 let zoom = 1;
+let demoOpenGeneration = 0;
+let autoOpenCustomUiTimer = null;
+
+const cancelAutoOpenCustomUi = () => {
+  if (autoOpenCustomUiTimer != null) {
+    window.clearTimeout(autoOpenCustomUiTimer);
+    autoOpenCustomUiTimer = null;
+  }
+};
+
+const setCustomCloseEnabled = (enabled) => {
+  const closeButton = document.getElementById('custom-close');
+  if (closeButton) {
+    closeButton.disabled = !enabled;
+  }
+};
+
+const invalidateCustomUiOpen = () => {
+  demoOpenGeneration += 1;
+};
 
 const log = (label, value) => {
   const line = typeof value === 'string' ? value : JSON.stringify(value);
   const stamp = new Date().toISOString().slice(11, 19);
   output.textContent = `[${stamp}] ${label}: ${line}\n${output.textContent}`.trim();
+};
+
+const refreshCustomIndicator = () => {
+  if (customPageIndicator) {
+    customPageIndicator.textContent = `${currentPage} / ${pageCount}`;
+  }
+};
+
+const setCustomUiVisible = (visible) => {
+  document.documentElement.classList.toggle('custom-pdf-active', visible);
+  document.body.classList.toggle('custom-pdf-active', visible);
+  if (!visible) {
+    document.documentElement.classList.remove('custom-pdf-capture-ready');
+  }
+  document.documentElement.style.background = visible ? 'transparent' : '';
+  document.body.style.background = visible ? 'transparent' : '';
+  const shell = document.getElementById('demo-shell');
+  if (shell) {
+    shell.hidden = visible;
+    shell.setAttribute('aria-hidden', visible ? 'true' : 'false');
+  }
+  if (customUi) {
+    customUi.hidden = !visible;
+    customUi.setAttribute('aria-hidden', visible ? 'false' : 'true');
+  }
 };
 
 if (Capacitor.isNativePlatform()) {
@@ -41,19 +87,45 @@ const wireEvents = async () => {
   await PdfViewer.addListener('load', (event) => {
     currentPage = event.page;
     pageCount = event.pageCount;
+    refreshCustomIndicator();
     log('load', event);
   });
   await PdfViewer.addListener('pageChange', (event) => {
     currentPage = event.page;
     pageCount = event.pageCount;
+    refreshCustomIndicator();
     log('pageChange', event);
   });
+  await PdfViewer.addListener('zoomChange', (event) => {
+    zoom = event.scale;
+    log('zoomChange', event);
+  });
   await PdfViewer.addListener('error', (event) => log('error', event));
-  await PdfViewer.addListener('close', () => log('close', {}));
+  await PdfViewer.addListener('close', () => {
+    setCustomUiVisible(false);
+    log('close', {});
+  });
   await PdfViewer.addListener('linkTap', (event) => log('linkTap', event));
 };
 
 void wireEvents();
+
+const shouldAutoOpenCustomUi =
+  Capacitor.isNativePlatform() &&
+  (import.meta.env.VITE_CAPTURE_CUSTOM_UI === 'true' ||
+    window.location.hash === '#custom-ui' ||
+    new URLSearchParams(window.location.search).get('demo') === 'custom-ui');
+
+if (shouldAutoOpenCustomUi) {
+  if (import.meta.env.VITE_CAPTURE_CUSTOM_UI === 'true') {
+    document.documentElement.classList.add('custom-pdf-capture-ready');
+    setCustomUiVisible(true);
+  }
+  autoOpenCustomUiTimer = window.setTimeout(() => {
+    autoOpenCustomUiTimer = null;
+    document.getElementById('open-custom-ui')?.click();
+  }, 1200);
+}
 
 if (!Capacitor.isNativePlatform()) {
   const urlButton = document.getElementById('open-url');
@@ -78,9 +150,16 @@ if (!Capacitor.isNativePlatform()) {
 
 document.getElementById('open-fullscreen').addEventListener('click', async () => {
   try {
+    const openGeneration = ++demoOpenGeneration;
+    cancelAutoOpenCustomUi();
+    setCustomUiVisible(false);
     zoom = 1;
+    const source = await bundledSample();
+    if (openGeneration !== demoOpenGeneration) {
+      return;
+    }
     const result = await PdfViewer.open({
-      source: await bundledSample(),
+      source,
       sourceType: 'base64',
       mode: 'fullscreen',
       page: 1,
@@ -96,9 +175,16 @@ document.getElementById('open-fullscreen').addEventListener('click', async () =>
 
 document.getElementById('open-inline').addEventListener('click', async () => {
   try {
+    const openGeneration = ++demoOpenGeneration;
+    cancelAutoOpenCustomUi();
+    setCustomUiVisible(false);
     zoom = 1;
+    const source = await bundledSample();
+    if (openGeneration !== demoOpenGeneration) {
+      return;
+    }
     const result = await PdfViewer.open({
-      source: await bundledSample(),
+      source,
       sourceType: 'base64',
       mode: 'inline',
       elementId: 'inline-pdf',
@@ -110,6 +196,50 @@ document.getElementById('open-inline').addEventListener('click', async () => {
     log('open inline', result);
   } catch (error) {
     log('error', error?.message ?? error);
+  }
+});
+
+document.getElementById('open-custom-ui').addEventListener('click', async () => {
+  if (!Capacitor.isNativePlatform()) {
+    log('error', 'Custom UI (toBack) requires iOS or Android');
+    return;
+  }
+  cancelAutoOpenCustomUi();
+  const openGeneration = ++demoOpenGeneration;
+  setCustomCloseEnabled(false);
+  try {
+    setCustomUiVisible(true);
+    zoom = 1;
+    const source = await bundledSample();
+    if (openGeneration !== demoOpenGeneration) {
+      return;
+    }
+    const result = await PdfViewer.open({
+      source,
+      sourceType: 'base64',
+      mode: 'underWebView',
+      toBack: true,
+      nativeUi: false,
+      scrollMode: 'continuous',
+      page: 1,
+    });
+    if (openGeneration !== demoOpenGeneration) {
+      return;
+    }
+    currentPage = result.page;
+    pageCount = result.pageCount;
+    refreshCustomIndicator();
+    log('open custom ui', result);
+  } catch (error) {
+    if (openGeneration !== demoOpenGeneration) {
+      return;
+    }
+    setCustomUiVisible(false);
+    log('error', error?.message ?? error);
+  } finally {
+    if (openGeneration === demoOpenGeneration) {
+      setCustomCloseEnabled(true);
+    }
   }
 });
 
@@ -160,5 +290,53 @@ document.getElementById('get-version').addEventListener('click', async () => {
     log('version', await PdfViewer.getPluginVersion());
   } catch (error) {
     log('error', error?.message ?? error);
+  }
+});
+
+document.getElementById('custom-prev').addEventListener('click', async () => {
+  try {
+    await PdfViewer.previousPage();
+  } catch (error) {
+    log('error', error?.message ?? error);
+  }
+});
+
+document.getElementById('custom-next').addEventListener('click', async () => {
+  try {
+    await PdfViewer.nextPage();
+  } catch (error) {
+    log('error', error?.message ?? error);
+  }
+});
+
+document.getElementById('custom-zoom-out').addEventListener('click', async () => {
+  try {
+    zoom = Math.max(0.5, zoom - 0.25);
+    await PdfViewer.setZoom({ scale: zoom });
+  } catch (error) {
+    log('error', error?.message ?? error);
+  }
+});
+
+document.getElementById('custom-zoom-in').addEventListener('click', async () => {
+  try {
+    zoom = Math.min(4, zoom + 0.25);
+    await PdfViewer.setZoom({ scale: zoom });
+  } catch (error) {
+    log('error', error?.message ?? error);
+  }
+});
+
+document.getElementById('custom-close').addEventListener('click', async () => {
+  cancelAutoOpenCustomUi();
+  invalidateCustomUiOpen();
+  setCustomCloseEnabled(false);
+  try {
+    await PdfViewer.close();
+    setCustomUiVisible(false);
+  } catch (error) {
+    log('error', error?.message ?? error);
+  } finally {
+    setCustomCloseEnabled(true);
   }
 });

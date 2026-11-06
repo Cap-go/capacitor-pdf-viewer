@@ -11,12 +11,20 @@ public class PdfViewerPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "open", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "close", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "goToPage", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "nextPage", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "previousPage", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setZoom", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getPageCount", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getCurrentPage", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "hide", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "show", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "updateLayout", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getPluginVersion", returnType: CAPPluginReturnPromise)
     ]
 
     private let implementation = PdfViewer()
     private var session: PdfViewerSession?
+    private var openGeneration = 0
 
     @objc func open(_ call: CAPPluginCall) {
         guard let source = call.getString("source"), !source.isEmpty else {
@@ -28,12 +36,16 @@ public class PdfViewerPlugin: CAPPlugin, CAPBridgedPlugin {
             source: source,
             sourceType: call.getString("sourceType")
         )
-        let mode = call.getString("mode") ?? "fullscreen"
+        let toBack = call.getBool("toBack") ?? false
+        let modeRaw = call.getString("mode") ?? "fullscreen"
+        let mode = toBack || modeRaw == "underWebView" ? "underWebView" : modeRaw
         let elementId = call.getString("elementId")
         let password = call.getString("password")
         let page = call.getInt("page") ?? 1
         let scrollMode = call.getString("scrollMode") ?? "continuous"
         let headers = Self.stringMap(from: call.getObject("headers"))
+        let nativeUi = call.getBool("nativeUi") ?? (mode != "underWebView")
+        let layout = Self.layout(from: call.getObject("layout"))
 
         if mode == "inline", elementId == nil || elementId?.isEmpty == true {
             let message = PdfViewerError.missingElementId.localizedDescription
@@ -42,31 +54,48 @@ public class PdfViewerPlugin: CAPPlugin, CAPBridgedPlugin {
             return
         }
 
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            do {
-                let document = try PdfViewer.loadDocument(
-                    source: source,
-                    sourceType: sourceType,
-                    headers: headers,
-                    password: password
-                )
-                DispatchQueue.main.async {
-                    guard let self else { return }
-                    let active = self.ensureSession()
-                    let request = PdfOpenRequest(
-                        document: document,
-                        mode: mode,
-                        elementId: elementId,
-                        page: page,
-                        scrollMode: scrollMode
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.openGeneration += 1
+            let generation = self.openGeneration
+
+            DispatchQueue.global(qos: .userInitiated).async {
+                do {
+                    let document = try PdfViewer.loadDocument(
+                        source: source,
+                        sourceType: sourceType,
+                        headers: headers,
+                        password: password
                     )
-                    active.present(request: request, call: call)
-                }
-            } catch {
-                DispatchQueue.main.async {
-                    let message = error.localizedDescription
-                    self?.notifyListeners("error", data: ["message": message])
-                    call.reject(message)
+                    DispatchQueue.main.async { [weak self] in
+                        guard let self else { return }
+                        guard generation == self.openGeneration else {
+                            call.reject("PDF open was superseded")
+                            return
+                        }
+                        let active = self.ensureSession()
+                        let request = PdfOpenRequest(
+                            document: document,
+                            mode: mode,
+                            elementId: elementId,
+                            page: page,
+                            scrollMode: scrollMode,
+                            nativeUi: nativeUi,
+                            layout: layout
+                        )
+                        active.present(request: request, call: call)
+                    }
+                } catch {
+                    DispatchQueue.main.async { [weak self] in
+                        guard let self else { return }
+                        guard generation == self.openGeneration else {
+                            call.reject("PDF open was superseded")
+                            return
+                        }
+                        let message = error.localizedDescription
+                        self.notifyListeners("error", data: ["message": message])
+                        call.reject(message)
+                    }
                 }
             }
         }
@@ -74,6 +103,7 @@ public class PdfViewerPlugin: CAPPlugin, CAPBridgedPlugin {
 
     @objc func close(_ call: CAPPluginCall) {
         DispatchQueue.main.async { [weak self] in
+            self?.openGeneration += 1
             self?.session?.dismiss(emitClose: true)
             call.resolve()
         }
@@ -90,6 +120,26 @@ public class PdfViewerPlugin: CAPPlugin, CAPBridgedPlugin {
         }
     }
 
+    @objc func nextPage(_ call: CAPPluginCall) {
+        DispatchQueue.main.async { [weak self] in
+            guard let session = self?.session else {
+                call.reject("No PDF is open")
+                return
+            }
+            session.nextPage(call: call)
+        }
+    }
+
+    @objc func previousPage(_ call: CAPPluginCall) {
+        DispatchQueue.main.async { [weak self] in
+            guard let session = self?.session else {
+                call.reject("No PDF is open")
+                return
+            }
+            session.previousPage(call: call)
+        }
+    }
+
     @objc func setZoom(_ call: CAPPluginCall) {
         let scale = CGFloat(call.getFloat("scale") ?? 1)
         DispatchQueue.main.async { [weak self] in
@@ -98,6 +148,56 @@ public class PdfViewerPlugin: CAPPlugin, CAPBridgedPlugin {
                 return
             }
             session.setZoom(scale, call: call)
+        }
+    }
+
+    @objc func getPageCount(_ call: CAPPluginCall) {
+        DispatchQueue.main.async { [weak self] in
+            guard let session = self?.session else {
+                call.reject("No PDF is open")
+                return
+            }
+            session.getPageCount(call: call)
+        }
+    }
+
+    @objc func getCurrentPage(_ call: CAPPluginCall) {
+        DispatchQueue.main.async { [weak self] in
+            guard let session = self?.session else {
+                call.reject("No PDF is open")
+                return
+            }
+            session.getCurrentPage(call: call)
+        }
+    }
+
+    @objc func hide(_ call: CAPPluginCall) {
+        DispatchQueue.main.async { [weak self] in
+            guard let session = self?.session else {
+                call.reject("No PDF is open")
+                return
+            }
+            session.hide(call: call)
+        }
+    }
+
+    @objc func show(_ call: CAPPluginCall) {
+        DispatchQueue.main.async { [weak self] in
+            guard let session = self?.session else {
+                call.reject("No PDF is open")
+                return
+            }
+            session.show(call: call)
+        }
+    }
+
+    @objc func updateLayout(_ call: CAPPluginCall) {
+        DispatchQueue.main.async { [weak self] in
+            guard let session = self?.session else {
+                call.reject("No PDF is open")
+                return
+            }
+            session.updateLayout(Self.layout(from: call), call: call)
         }
     }
 
@@ -129,5 +229,40 @@ public class PdfViewerPlugin: CAPPlugin, CAPBridgedPlugin {
             }
         }
         return result.isEmpty ? nil : result
+    }
+
+    private static func layout(from object: JSObject?) -> PdfLayoutCss {
+        guard let object else { return PdfLayoutCss() }
+        return PdfLayoutCss(
+            x: cssNumber(object["x"]),
+            y: cssNumber(object["y"]),
+            width: cssNumber(object["width"]),
+            height: cssNumber(object["height"])
+        )
+    }
+
+    private static func layout(from call: CAPPluginCall) -> PdfLayoutCss {
+        if let object = call.getObject("layout") {
+            return layout(from: object)
+        }
+        return PdfLayoutCss(
+            x: call.getFloat("x").map { CGFloat($0) },
+            y: call.getFloat("y").map { CGFloat($0) },
+            width: call.getFloat("width").map { CGFloat($0) },
+            height: call.getFloat("height").map { CGFloat($0) }
+        )
+    }
+
+    private static func cssNumber(_ value: Any?) -> CGFloat? {
+        if let number = value as? Double {
+            return CGFloat(number)
+        }
+        if let number = value as? Int {
+            return CGFloat(number)
+        }
+        if let number = value as? Float {
+            return CGFloat(number)
+        }
+        return nil
     }
 }

@@ -22,6 +22,38 @@ describe('PdfViewerWeb', () => {
     );
   });
 
+  it('rejects underWebView on web', async () => {
+    await expect(
+      viewer.open({ source: SAMPLE_PDF_BASE64, sourceType: 'base64', mode: 'underWebView' }),
+    ).rejects.toThrow(/not available on web/i);
+  });
+
+  it('rejects toBack on web', async () => {
+    await expect(viewer.open({ source: SAMPLE_PDF_BASE64, sourceType: 'base64', toBack: true })).rejects.toThrow(
+      /not available on web/i,
+    );
+  });
+
+  it('rejects fullscreen with nativeUi false on web', async () => {
+    await expect(
+      viewer.open({ source: SAMPLE_PDF_BASE64, sourceType: 'base64', mode: 'fullscreen', nativeUi: false }),
+    ).rejects.toThrow(/not supported on web/i);
+  });
+
+  it('keeps the current viewer when rejecting fullscreen with nativeUi false', async () => {
+    await viewer.open({
+      source: SAMPLE_PDF_BASE64,
+      sourceType: 'base64',
+      mode: 'fullscreen',
+    });
+    const frameBefore = document.querySelector('iframe[title="PDF Viewer"]');
+    expect(frameBefore).not.toBeNull();
+    await expect(
+      viewer.open({ source: SAMPLE_PDF_BASE64, sourceType: 'base64', mode: 'fullscreen', nativeUi: false }),
+    ).rejects.toThrow(/not supported on web/i);
+    expect(document.querySelector('iframe[title="PDF Viewer"]')).toBe(frameBefore);
+  });
+
   it('opens url sources with forwarded headers', async () => {
     const pdfBytes = Uint8Array.from(atob(SAMPLE_PDF_BASE64), (char) => char.charCodeAt(0));
     const originalFetch = globalThis.fetch;
@@ -109,6 +141,48 @@ describe('PdfViewerWeb', () => {
     await viewer.goToPage({ page: 2 });
     const frame = document.querySelector('iframe[title="PDF Viewer"]') as HTMLIFrameElement;
     expect(frame.src).toContain('#page=2');
+  });
+
+  it('nextPage is a no-op when page is at or beyond pageCount', async () => {
+    await viewer.open({
+      source: SAMPLE_PDF_BASE64,
+      sourceType: 'base64',
+      mode: 'fullscreen',
+      page: 1,
+    });
+    const { pageCount } = await viewer.getPageCount();
+    await viewer.goToPage({ page: pageCount + 5 });
+    const frame = document.querySelector('iframe[title="PDF Viewer"]') as HTMLIFrameElement;
+    expect(frame.src).toContain(`#page=${pageCount + 5}`);
+    await viewer.nextPage();
+    expect(frame.src).toContain(`#page=${pageCount + 5}`);
+  });
+
+  it('rejects nextPage when no document is open', async () => {
+    await expect(viewer.nextPage()).rejects.toThrow('No PDF is open');
+  });
+
+  it('previousPage is a no-op on page 1', async () => {
+    const pageChanges: unknown[] = [];
+    await viewer.addListener('pageChange', (event) => {
+      pageChanges.push(event);
+    });
+    await viewer.open({
+      source: SAMPLE_PDF_BASE64,
+      sourceType: 'base64',
+      mode: 'fullscreen',
+      page: 1,
+    });
+    const frame = document.querySelector('iframe[title="PDF Viewer"]') as HTMLIFrameElement;
+    expect(frame.src).toContain('#page=1');
+    const countAfterOpen = pageChanges.length;
+    await viewer.previousPage();
+    expect(frame.src).toContain('#page=1');
+    expect(pageChanges.length).toBe(countAfterOpen);
+  });
+
+  it('rejects previousPage when no document is open', async () => {
+    await expect(viewer.previousPage()).rejects.toThrow('No PDF is open');
   });
 
   it('does not emit error when a superseded url download fails', async () => {
