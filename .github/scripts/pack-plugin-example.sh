@@ -11,7 +11,7 @@ pack_plugin_example_app() {
 
   test_app="$tmp_root/plugin-example-app"
 
-  cd "$repo_root"
+  cd "$repo_root" || return 1
 
   bun run build
 
@@ -29,7 +29,7 @@ pack_plugin_example_app() {
 
   plugin_name="$(bun -e 'console.log(require("./package.json").name)')"
   cp -R example-app/. "$test_app/"
-  cd "$test_app"
+  cd "$test_app" || return 1
   bun remove "$plugin_name"
   bun add "${packed_packages[0]}"
 }

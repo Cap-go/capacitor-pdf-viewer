@@ -163,6 +163,8 @@ internal class PdfUnderWebViewTouchRouter(
     @SuppressLint("JavascriptInterface")
     fun install() {
         if (installed) return
+        // Touch overlay script runs via evaluateJavascript, so it counts as Java-injected JS and
+        // may call this interface on API 17+ even when the surrounding HTML was loaded earlier.
         webView.addJavascriptInterface(OverlayBridge(), "CapgoPdfTouchOverlay")
         webView.setOnTouchListener(touchListener)
         installed = true

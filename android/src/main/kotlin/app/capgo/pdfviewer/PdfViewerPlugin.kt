@@ -209,17 +209,17 @@ class PdfViewerPlugin : Plugin() {
 
     @PluginMethod
     fun updateLayout(call: PluginCall) {
-        if (!underWebView) {
-            call.reject("updateLayout is only supported in underWebView / toBack mode")
-            return
-        }
-        layoutCss = readLayout(call)
         bridge.activity.runOnUiThread {
+            if (!underWebView) {
+                call.reject("updateLayout is only supported in underWebView / toBack mode")
+                return@runOnUiThread
+            }
             val container = host
             if (container == null) {
                 call.reject("No PDF is open")
                 return@runOnUiThread
             }
+            layoutCss = readLayout(call)
             applyUnderWebViewLayout(container)
             installUnderWebViewLayoutListener(container)
             touchRouter?.refreshOverlayRegions()
