@@ -97,7 +97,7 @@ const wireEvents = async () => {
     log('pageChange', event);
   });
   await PdfViewer.addListener('zoomChange', (event) => {
-    zoom = event.scale;
+    zoom = Math.min(4, Math.max(0.5, event.scale));
     log('zoomChange', event);
   });
   await PdfViewer.addListener('error', (event) => log('error', event));

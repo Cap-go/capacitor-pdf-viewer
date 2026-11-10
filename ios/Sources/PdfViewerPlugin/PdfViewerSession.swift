@@ -36,6 +36,7 @@ final class PdfViewerSession: NSObject, PDFViewDelegate {
     private var fullscreenController: UIViewController?
     private var pageObserver: NSObjectProtocol?
     private var scaleObserver: NSObjectProtocol?
+    private var pendingZoomEmit: DispatchWorkItem?
     private var baseScale: CGFloat = 1.0
     private var isInline = false
     private var isUnderWebView = false
@@ -229,6 +230,7 @@ final class PdfViewerSession: NSObject, PDFViewDelegate {
             NotificationCenter.default.removeObserver(scaleObserver)
             self.scaleObserver = nil
         }
+        cancelPendingZoomEmit()
         pdfView?.delegate = nil
         pdfView?.document = nil
         pdfView?.removeFromSuperview()
@@ -485,6 +487,7 @@ final class PdfViewerSession: NSObject, PDFViewDelegate {
         if let scaleObserver {
             NotificationCenter.default.removeObserver(scaleObserver)
         }
+        cancelPendingZoomEmit()
         scaleObserver = NotificationCenter.default.addObserver(
             forName: .PDFViewScaleChanged,
             object: pdfView,
@@ -492,8 +495,23 @@ final class PdfViewerSession: NSObject, PDFViewDelegate {
         ) { [weak self] _ in
             guard let self, !pdfView.autoScales else { return }
             let relative = pdfView.scaleFactor / max(self.baseScale, 0.01)
-            self.emitZoom(relativeScale: relative)
+            self.scheduleZoomEmit(relativeScale: relative)
         }
+    }
+
+    private func scheduleZoomEmit(relativeScale: CGFloat) {
+        pendingZoomEmit?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            self?.pendingZoomEmit = nil
+            self?.emitZoom(relativeScale: relativeScale)
+        }
+        pendingZoomEmit = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.08, execute: work)
+    }
+
+    private func cancelPendingZoomEmit() {
+        pendingZoomEmit?.cancel()
+        pendingZoomEmit = nil
     }
 
     private func emitZoom(relativeScale: CGFloat) {

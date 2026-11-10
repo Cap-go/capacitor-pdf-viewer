@@ -439,6 +439,8 @@ updateLayout(options: PdfLayoutOptions) => Promise<void>
 
 Reposition or resize the native PDF when using `underWebView` / `toBack`.
 
+On web this call is rejected because under-WebView presentation is not available.
+
 | Param         | Type                                                          |
 | ------------- | ------------------------------------------------------------- |
 | **`options`** | <code><a href="#pdflayoutoptions">PdfLayoutOptions</a></code> |
@@ -607,7 +609,7 @@ Options for {@link PdfViewerPlugin.open}.
 | **`headers`**    | <code><a href="#record">Record</a>&lt;string, string&gt;</code> | HTTP headers used when downloading an https `url` source (for example auth tokens).                                                                                                                                                                                                        |                           | 8.0.0 |
 | **`password`**   | <code>string</code>                                             | Password for encrypted PDFs on iOS and Android. On web the password cannot be injected into the browser viewer; the browser may still prompt.                                                                                                                                              |                           | 8.0.0 |
 | **`mode`**       | <code><a href="#pdfdisplaymode">PdfDisplayMode</a></code>       | How to present the viewer.                                                                                                                                                                                                                                                                 | <code>'fullscreen'</code> | 8.0.0 |
-| **`toBack`**     | <code>boolean</code>                                            | Shorthand for `mode: 'underWebView'`. When true, the native PDF is placed behind a transparent WebView so your HTML controls sit on top. Implies `nativeUi: false`.                                                                                                                        | <code>false</code>        | 8.0.0 |
+| **`toBack`**     | <code>boolean</code>                                            | Shorthand for `mode: 'underWebView'`. When true, the native PDF is placed behind a transparent WebView so your HTML controls sit on top. Implies `nativeUi: false`. On web, `toBack: true` and `mode: 'underWebView'` are rejected.                                                        | <code>false</code>        | 8.0.0 |
 | **`nativeUi`**   | <code>boolean</code>                                            | When false, hides all native chrome (close button, toolbars). Defaults to false when `toBack` or `mode` is `underWebView`, otherwise true for fullscreen. On web, `nativeUi: false` with `mode: 'fullscreen'` is rejected. Use `inline` mode with `elementId`, or keep `nativeUi` enabled. |                           | 8.0.0 |
 | **`layout`**     | <code><a href="#pdflayoutoptions">PdfLayoutOptions</a></code>   | Layout for `underWebView` / `toBack`. Ignored for inline and classic fullscreen overlay.                                                                                                                                                                                                   |                           | 8.0.0 |
 | **`elementId`**  | <code>string</code>                                             | DOM element id used when `mode` is `inline`. Native code measures this element and places the viewer over it.                                                                                                                                                                              |                           | 8.0.0 |
@@ -620,12 +622,12 @@ Options for {@link PdfViewerPlugin.open}.
 Layout rectangle for `underWebView` / `toBack` presentation, in CSS pixels relative to the WebView viewport.
 Omit width and height to fill the WebView bounds.
 
-| Prop         | Type                | Description                                                              |
-| ------------ | ------------------- | ------------------------------------------------------------------------ |
-| **`x`**      | <code>number</code> | Horizontal origin in CSS pixels from the WebView viewport left edge.     |
-| **`y`**      | <code>number</code> | Vertical origin in CSS pixels from the WebView viewport top edge.        |
-| **`width`**  | <code>number</code> | Width in CSS pixels. When omitted with height, fills the WebView width.  |
-| **`height`** | <code>number</code> | Height in CSS pixels. When omitted with width, fills the WebView height. |
+| Prop         | Type                | Description                                                                                         |
+| ------------ | ------------------- | --------------------------------------------------------------------------------------------------- |
+| **`x`**      | <code>number</code> | Horizontal origin in CSS pixels from the WebView viewport left edge.                                |
+| **`y`**      | <code>number</code> | Vertical origin in CSS pixels from the WebView viewport top edge.                                   |
+| **`width`**  | <code>number</code> | Width in CSS pixels. When omitted, or when the value is `0` or negative, fills the WebView width.   |
+| **`height`** | <code>number</code> | Height in CSS pixels. When omitted, or when the value is `0` or negative, fills the WebView height. |
 
 
 #### GoToPageOptions
@@ -742,9 +744,7 @@ When omitted, the plugin infers the type from the string shape.
 
 Construct a type with a set of properties K of type T
 
-<code>{
- [P in K]: T;
- }</code>
+<code>{ [P in K]: T; }</code>
 
 
 #### PdfDisplayMode

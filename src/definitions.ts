@@ -45,11 +45,11 @@ export interface PdfLayoutOptions {
    */
   y?: number;
   /**
-   * Width in CSS pixels. When omitted with height, fills the WebView width.
+   * Width in CSS pixels. When omitted, or when the value is `0` or negative, fills the WebView width.
    */
   width?: number;
   /**
-   * Height in CSS pixels. When omitted with width, fills the WebView height.
+   * Height in CSS pixels. When omitted, or when the value is `0` or negative, fills the WebView height.
    */
   height?: number;
 }
@@ -99,6 +99,8 @@ export interface OpenPdfOptions {
   /**
    * Shorthand for `mode: 'underWebView'`. When true, the native PDF is placed behind a transparent WebView
    * so your HTML controls sit on top. Implies `nativeUi: false`.
+   *
+   * On web, `toBack: true` and `mode: 'underWebView'` are rejected.
    *
    * @default false
    * @platform android, ios
@@ -398,6 +400,8 @@ export interface PdfViewerPlugin {
 
   /**
    * Reposition or resize the native PDF when using `underWebView` / `toBack`.
+   *
+   * On web this call is rejected because under-WebView presentation is not available.
    *
    * @since 8.0.0
    */

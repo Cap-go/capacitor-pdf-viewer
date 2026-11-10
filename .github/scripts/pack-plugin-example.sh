@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Shared pack-and-install flow for CI example-app verification and capture prep.
 # Sources must set repo_root and tmp_root before calling pack_plugin_example_app.
+# pack_plugin_example_app sets `test_app` as a global output (the installed
+# example-app path) for callers such as prepare-capture-example.sh.
 
 pack_plugin_example_app() {
   local repo_root="$1"
