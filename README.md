@@ -13,6 +13,8 @@
 
 **@capgo/capacitor-pdf-viewer** embeds native PDF viewing in Capacitor apps on iOS, Android, and web. Instead of fighting WebView limitations or shipping a heavy JavaScript PDF renderer, you open files from a path, HTTPS URL (with custom headers), or base64 and get system-grade rendering: page navigation, pinch zoom, continuous or single-page scrolling, password-protected documents, fullscreen or inline layout, and events for load, errors, page changes, link taps, and close. On iOS it uses PDFKit; on Android it uses Pdfium; on web it uses the browser PDF viewer with blob URLs.
 
+**`underWebView` / `toBack` (iOS and Android):** render the native PDF behind a transparent Capacitor WebView and ship fully custom HTML toolbars, page indicators, and chrome without fighting z-order or overlapping iframes. The example app demonstrates this end to end (`Custom UI (toBack)`).
+
 ## Features
 
 - Open PDFs from a device path, `file://` URL, HTTPS URL, or base64 (including `data:` URIs)
@@ -38,13 +40,13 @@
 - [Capgo](https://capgo.app/) for live updates, native builds, and plugin support
 
 <p align="center">
-  <img src="./screenshots/android-under-webview.webp" alt="Android custom HTML toolbar over native PDF" width="280" />
-  <img src="./screenshots/ios-under-webview.webp" alt="iOS custom HTML toolbar over native PDF" width="280" />
+  <img src="./docs/screenshots/after-android.png" alt="Android: native PDF behind a custom HTML toolbar (underWebView)" width="280" />
+  <img src="./docs/screenshots/after-ios.png" alt="iOS: native PDF behind a custom HTML toolbar (underWebView)" width="280" />
 </p>
 
 <p align="center">
-  <img src="./screenshots/android-demo.webp" alt="Android emulator showing the example PDF open on two pages" width="280" />
-  <img src="./screenshots/example-app.webp" alt="Example app with inline PDF and controls" width="280" />
+  <img src="./docs/screenshots/before-android.png" alt="Android emulator: default fullscreen PDF before custom underWebView UI" width="280" />
+  <img src="./docs/screenshots/after-web-desktop.png" alt="Web: custom toolbar markup in the browser (native PDF is mobile only)" width="280" />
 </p>
 
 ## Compatibility
