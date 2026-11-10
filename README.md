@@ -182,7 +182,7 @@ Elements with `pointer-events: none`, `visibility: hidden`, or `display: none`, 
   <button type="button" id="prev">Prev</button>
   <span id="pageLabel">1 / 1</span>
   <button type="button" id="next">Next</button>
-  <button type="button" id="zoomOut">−</button>
+  <button type="button" id="zoomOut">-</button>
   <button type="button" id="zoomIn">+</button>
   <button type="button" id="closePdf">Close</button>
 </div>
@@ -742,7 +742,9 @@ When omitted, the plugin infers the type from the string shape.
 
 Construct a type with a set of properties K of type T
 
-<code>{ [P in K]: T; }</code>
+<code>{
+ [P in K]: T;
+ }</code>
 
 
 #### PdfDisplayMode
