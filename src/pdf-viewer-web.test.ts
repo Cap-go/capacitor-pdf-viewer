@@ -229,4 +229,29 @@ describe('PdfViewerWeb', () => {
     });
     await expect(viewer.setZoom({ scale: 1.5 })).resolves.toBeUndefined();
   });
+
+  it('applies backgroundColor on open and setBackgroundColor while open', async () => {
+    await viewer.open({
+      source: SAMPLE_PDF_BASE64,
+      sourceType: 'base64',
+      mode: 'fullscreen',
+      backgroundColor: '#223344',
+    });
+    const frame = document.querySelector('iframe[title="PDF Viewer"]') as HTMLIFrameElement;
+    const host = frame.parentElement?.parentElement ?? frame.parentElement;
+    expect(frame.style.background).toBe('#223344');
+    expect(host?.style.background).toBe('#223344');
+    await viewer.setBackgroundColor({ color: '#aabbcc' });
+    expect(frame.style.background).toBe('#aabbcc');
+    expect(host?.style.background).toBe('#aabbcc');
+  });
+
+  it('rejects invalid setBackgroundColor values', async () => {
+    await viewer.open({
+      source: SAMPLE_PDF_BASE64,
+      sourceType: 'base64',
+      mode: 'fullscreen',
+    });
+    await expect(viewer.setBackgroundColor({ color: 'nope' })).rejects.toThrow(/Invalid color/i);
+  });
 });

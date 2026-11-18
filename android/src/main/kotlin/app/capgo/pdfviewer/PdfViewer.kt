@@ -43,6 +43,24 @@ internal object PdfViewerHelpers {
         return clamped + 1
     }
 
+    /**
+     * Parse `#RRGGBB` or `#AARRGGBB`. Returns `null` when the string is absent or invalid.
+     */
+    fun parseArgbHex(hex: String?): Int? {
+        if (hex.isNullOrBlank()) return null
+        val normalized = hex.trim().let { value ->
+            if (value.startsWith("#")) value else "#$value"
+        }
+        if (!HEX_COLOR.matcher(normalized).matches()) return null
+        return try {
+            android.graphics.Color.parseColor(normalized)
+        } catch (_: IllegalArgumentException) {
+            null
+        }
+    }
+
+    private val HEX_COLOR = java.util.regex.Pattern.compile("^#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$")
+
     private fun looksLikeBase64(value: String): Boolean {
         val compact = value.replace("\\s".toRegex(), "")
         if (compact.length <= 32) return false

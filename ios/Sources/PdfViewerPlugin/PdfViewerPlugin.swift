@@ -14,6 +14,7 @@ public class PdfViewerPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "nextPage", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "previousPage", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setZoom", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "setBackgroundColor", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getPageCount", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getCurrentPage", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "hide", returnType: CAPPluginReturnPromise),
@@ -81,7 +82,8 @@ public class PdfViewerPlugin: CAPPlugin, CAPBridgedPlugin {
                             page: page,
                             scrollMode: scrollMode,
                             nativeUi: nativeUi,
-                            layout: layout
+                            layout: layout,
+                            backgroundColorHex: call.getString("backgroundColor")
                         )
                         active.present(request: request, call: call)
                     }
@@ -148,6 +150,20 @@ public class PdfViewerPlugin: CAPPlugin, CAPBridgedPlugin {
                 return
             }
             session.setZoom(scale, call: call)
+        }
+    }
+
+    @objc func setBackgroundColor(_ call: CAPPluginCall) {
+        guard let color = call.getString("color") else {
+            call.reject("color is required")
+            return
+        }
+        DispatchQueue.main.async { [weak self] in
+            guard let session = self?.session else {
+                call.reject("No PDF is open")
+                return
+            }
+            session.setBackgroundColor(color, call: call)
         }
     }
 

@@ -15,6 +15,8 @@
 
 **`underWebView` / `toBack` (iOS and Android):** render the native PDF behind a transparent Capacitor WebView and ship fully custom HTML toolbars, page indicators, and chrome without fighting z-order or overlapping iframes. The example app demonstrates this end to end (`Custom UI (toBack)`).
 
+**Custom viewer background:** pass `backgroundColor: '#RRGGBB'` (or `#AARRGGBB`) on `PdfViewer.open()` to tint the area around and between PDF pages on iOS and Android (defaults stay black on Android and system background on iOS). Call `PdfViewer.setBackgroundColor({ color: '#RRGGBB' })` to update the tint while the viewer stays open without reopening the document.
+
 ## Built and maintained with AI
 
 We build, improve and fix our plugins with heavy use of AI, so issues usually get fixed in under a day and pull requests get feedback the same day. A human still reviews, tests and merges 50+ pull requests daily.
@@ -35,6 +37,7 @@ We build, improve and fix our plugins with heavy use of AI, so issues usually ge
 - Fullscreen overlay or **inline** mode anchored to a DOM element (`elementId`)
 - **underWebView** / **`toBack`**: native PDF behind a transparent WebView with your HTML controls on top
 - Continuous vertical scrolling or single-page mode
+- Optional **`backgroundColor`** (`#RRGGBB` / `#AARRGGBB`) on open, plus **`setBackgroundColor`** while a viewer is active (iOS, Android, web)
 - Programmatic **goToPage**, **nextPage**, **previousPage**, **setZoom**, **hide**, **show**, **updateLayout**, and **close**
 - Events: `load`, `pageChange`, `zoomChange`, `error`, `close`, `linkTap`
 
@@ -255,6 +258,7 @@ See **`example-app/`** (button **Custom UI (toBack)**) for a working demo.
 * [`nextPage()`](#nextpage)
 * [`previousPage()`](#previouspage)
 * [`setZoom(...)`](#setzoom)
+* [`setBackgroundColor(...)`](#setbackgroundcolor)
 * [`getPageCount()`](#getpagecount)
 * [`getCurrentPage()`](#getcurrentpage)
 * [`hide()`](#hide)
@@ -370,6 +374,23 @@ On web this resolves without changing the browser viewer zoom.
 | Param         | Type                                                      |
 | ------------- | --------------------------------------------------------- |
 | **`options`** | <code><a href="#setzoomoptions">SetZoomOptions</a></code> |
+
+**Since:** 8.0.0
+
+--------------------
+
+
+### setBackgroundColor(...)
+
+```typescript
+setBackgroundColor(options: SetBackgroundColorOptions) => Promise<void>
+```
+
+Set the viewer background color while a PDF is open.
+
+| Param         | Type                                                                            |
+| ------------- | ------------------------------------------------------------------------------- |
+| **`options`** | <code><a href="#setbackgroundcoloroptions">SetBackgroundColorOptions</a></code> |
 
 **Since:** 8.0.0
 
@@ -614,19 +635,20 @@ Result returned after a PDF successfully opens.
 
 Options for {@link PdfViewerPlugin.open}.
 
-| Prop             | Type                                                            | Description                                                                                                                                                                                                                                                                                | Default                   | Since |
-| ---------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------- | ----- |
-| **`source`**     | <code>string</code>                                             | PDF location: file URL, device path, https URL, or base64 (raw or `data:` URI).                                                                                                                                                                                                            |                           |       |
-| **`sourceType`** | <code><a href="#pdfsourcetype">PdfSourceType</a></code>         | Explicit source kind. When omitted: - `data:` or raw base64 without a scheme =&gt; `base64` - `http`/`https` =&gt; `url` - otherwise =&gt; `file` (treated like a path or file URL; `path` is an alias on native)                                                                          |                           | 8.0.0 |
-| **`headers`**    | <code><a href="#record">Record</a>&lt;string, string&gt;</code> | HTTP headers used when downloading an https `url` source (for example auth tokens).                                                                                                                                                                                                        |                           | 8.0.0 |
-| **`password`**   | <code>string</code>                                             | Password for encrypted PDFs on iOS and Android. On web the password cannot be injected into the browser viewer; the browser may still prompt.                                                                                                                                              |                           | 8.0.0 |
-| **`mode`**       | <code><a href="#pdfdisplaymode">PdfDisplayMode</a></code>       | How to present the viewer.                                                                                                                                                                                                                                                                 | <code>'fullscreen'</code> | 8.0.0 |
-| **`toBack`**     | <code>boolean</code>                                            | Shorthand for `mode: 'underWebView'`. When true, the native PDF is placed behind a transparent WebView so your HTML controls sit on top. Implies `nativeUi: false`. On web, `toBack: true` and `mode: 'underWebView'` are rejected.                                                        | <code>false</code>        | 8.0.0 |
-| **`nativeUi`**   | <code>boolean</code>                                            | When false, hides all native chrome (close button, toolbars). Defaults to false when `toBack` or `mode` is `underWebView`, otherwise true for fullscreen. On web, `nativeUi: false` with `mode: 'fullscreen'` is rejected. Use `inline` mode with `elementId`, or keep `nativeUi` enabled. |                           | 8.0.0 |
-| **`layout`**     | <code><a href="#pdflayoutoptions">PdfLayoutOptions</a></code>   | Layout for `underWebView` / `toBack`. Ignored for inline and classic fullscreen overlay.                                                                                                                                                                                                   |                           | 8.0.0 |
-| **`elementId`**  | <code>string</code>                                             | DOM element id used when `mode` is `inline`. Native code measures this element and places the viewer over it.                                                                                                                                                                              |                           | 8.0.0 |
-| **`page`**       | <code>number</code>                                             | Initial page, 1-based.                                                                                                                                                                                                                                                                     |                           | 8.0.0 |
-| **`scrollMode`** | <code><a href="#pdfscrollmode">PdfScrollMode</a></code>         | Scroll behavior inside the viewer.                                                                                                                                                                                                                                                         | <code>'continuous'</code> | 8.0.0 |
+| Prop                  | Type                                                            | Description                                                                                                                                                                                                                                                                                | Default                   | Since |
+| --------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------- | ----- |
+| **`source`**          | <code>string</code>                                             | PDF location: file URL, device path, https URL, or base64 (raw or `data:` URI).                                                                                                                                                                                                            |                           |       |
+| **`sourceType`**      | <code><a href="#pdfsourcetype">PdfSourceType</a></code>         | Explicit source kind. When omitted: - `data:` or raw base64 without a scheme =&gt; `base64` - `http`/`https` =&gt; `url` - otherwise =&gt; `file` (treated like a path or file URL; `path` is an alias on native)                                                                          |                           | 8.0.0 |
+| **`headers`**         | <code><a href="#record">Record</a>&lt;string, string&gt;</code> | HTTP headers used when downloading an https `url` source (for example auth tokens).                                                                                                                                                                                                        |                           | 8.0.0 |
+| **`password`**        | <code>string</code>                                             | Password for encrypted PDFs on iOS and Android. On web the password cannot be injected into the browser viewer; the browser may still prompt.                                                                                                                                              |                           | 8.0.0 |
+| **`mode`**            | <code><a href="#pdfdisplaymode">PdfDisplayMode</a></code>       | How to present the viewer.                                                                                                                                                                                                                                                                 | <code>'fullscreen'</code> | 8.0.0 |
+| **`toBack`**          | <code>boolean</code>                                            | Shorthand for `mode: 'underWebView'`. When true, the native PDF is placed behind a transparent WebView so your HTML controls sit on top. Implies `nativeUi: false`. On web, `toBack: true` and `mode: 'underWebView'` are rejected.                                                        | <code>false</code>        | 8.0.0 |
+| **`nativeUi`**        | <code>boolean</code>                                            | When false, hides all native chrome (close button, toolbars). Defaults to false when `toBack` or `mode` is `underWebView`, otherwise true for fullscreen. On web, `nativeUi: false` with `mode: 'fullscreen'` is rejected. Use `inline` mode with `elementId`, or keep `nativeUi` enabled. |                           | 8.0.0 |
+| **`layout`**          | <code><a href="#pdflayoutoptions">PdfLayoutOptions</a></code>   | Layout for `underWebView` / `toBack`. Ignored for inline and classic fullscreen overlay.                                                                                                                                                                                                   |                           | 8.0.0 |
+| **`elementId`**       | <code>string</code>                                             | DOM element id used when `mode` is `inline`. Native code measures this element and places the viewer over it.                                                                                                                                                                              |                           | 8.0.0 |
+| **`page`**            | <code>number</code>                                             | Initial page, 1-based.                                                                                                                                                                                                                                                                     |                           | 8.0.0 |
+| **`scrollMode`**      | <code><a href="#pdfscrollmode">PdfScrollMode</a></code>         | Scroll behavior inside the viewer.                                                                                                                                                                                                                                                         | <code>'continuous'</code> | 8.0.0 |
+| **`backgroundColor`** | <code>string</code>                                             | Background color for the area around and between PDF pages (`#RRGGBB` or `#AARRGGBB`). When omitted or invalid, Android uses black and iOS uses `systemBackground` (clear in `underWebView`). On web this colors the viewer host around the embedded browser PDF frame.                    |                           | 8.0.0 |
 
 
 #### PdfLayoutOptions
@@ -658,6 +680,15 @@ Options for {@link PdfViewerPlugin.setZoom}.
 | Prop        | Type                | Description                                              |
 | ----------- | ------------------- | -------------------------------------------------------- |
 | **`scale`** | <code>number</code> | Zoom multiplier. `1` is the default fit scale on native. |
+
+
+#### SetBackgroundColorOptions
+
+Options for {@link PdfViewerPlugin.setBackgroundColor}.
+
+| Prop        | Type                | Description                                                                |
+| ----------- | ------------------- | -------------------------------------------------------------------------- |
+| **`color`** | <code>string</code> | Hex color (`#RRGGBB` or `#AARRGGBB`) applied around and between PDF pages. |
 
 
 #### PdfPageCountResult

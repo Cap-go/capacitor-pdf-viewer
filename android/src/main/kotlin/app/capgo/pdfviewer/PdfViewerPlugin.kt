@@ -53,6 +53,7 @@ class PdfViewerPlugin : Plugin() {
         val headers = stringMap(call.getObject("headers"))
         val nativeUi = call.getBoolean("nativeUi", mode != "underWebView") == true
         val requestedLayout = readLayout(call.getObject("layout"))
+        val backgroundColorHex = call.getString("backgroundColor")
 
         if (mode == "inline" && elementId.isNullOrBlank()) {
             val message = "elementId is required when mode is inline"
@@ -72,7 +73,17 @@ class PdfViewerPlugin : Plugin() {
                         return@runOnUiThread
                     }
                     try {
-                        present(opened, mode, elementId, page, scrollMode, nativeUi, requestedLayout, call)
+                        present(
+                            opened,
+                            mode,
+                            elementId,
+                            page,
+                            scrollMode,
+                            nativeUi,
+                            requestedLayout,
+                            backgroundColorHex,
+                            call,
+                        )
                     } catch (error: Exception) {
                         val owned = document === opened
                         dismiss(emitClose = false)
@@ -160,6 +171,29 @@ class PdfViewerPlugin : Plugin() {
     }
 
     @PluginMethod
+    fun setBackgroundColor(call: PluginCall) {
+        val colorHex = call.getString("color")
+        val parsed = PdfViewerHelpers.parseArgbHex(colorHex)
+        if (parsed == null) {
+            call.reject("Invalid color; expected #RRGGBB or #AARRGGBB")
+            return
+        }
+        val activeViewer = viewer
+        val container = host
+        if (activeViewer == null || container == null) {
+            call.reject("No PDF is open")
+            return
+        }
+        bridge.activity.runOnUiThread {
+            activeViewer.setCanvasBackgroundColor(parsed)
+            if (!underWebView) {
+                container.setBackgroundColor(parsed)
+            }
+            call.resolve()
+        }
+    }
+
+    @PluginMethod
     fun getPageCount(call: PluginCall) {
         if (document == null || viewer == null) {
             call.reject("No PDF is open")
@@ -241,6 +275,7 @@ class PdfViewerPlugin : Plugin() {
         scrollMode: String,
         nativeUi: Boolean,
         requestedLayout: LayoutCss,
+        backgroundColorHex: String?,
         call: PluginCall,
     ) {
         dismiss(emitClose = false)
@@ -272,8 +307,19 @@ class PdfViewerPlugin : Plugin() {
             }
         }
 
+        val parsedBackground = PdfViewerHelpers.parseArgbHex(backgroundColorHex)
+        val defaultCanvasColor = Color.BLACK
+        val canvasColor = parsedBackground ?: defaultCanvasColor
+
         val container = FrameLayout(context)
-        container.setBackgroundColor(if (underWebView) Color.TRANSPARENT else Color.BLACK)
+        container.setBackgroundColor(
+            when {
+                underWebView -> Color.TRANSPARENT
+                parsedBackground != null -> parsedBackground
+                else -> Color.BLACK
+            },
+        )
+        pdfView.setCanvasBackgroundColor(canvasColor)
         container.addView(
             pdfView,
             FrameLayout.LayoutParams(

@@ -40,4 +40,21 @@ class PdfViewerHelpersTest {
         assertEquals(1, PdfViewerHelpers.oneBasedPage(0, 3))
         assertEquals(3, PdfViewerHelpers.oneBasedPage(2, 3))
     }
+
+    @Test
+    fun parseArgbHex_rrggbb() {
+        assertEquals(android.graphics.Color.parseColor("#1a2b3c"), PdfViewerHelpers.parseArgbHex("#1a2b3c"))
+    }
+
+    @Test
+    fun parseArgbHex_aarrggbb() {
+        assertEquals(android.graphics.Color.parseColor("#80112233"), PdfViewerHelpers.parseArgbHex("#80112233"))
+    }
+
+    @Test
+    fun parseArgbHex_invalid() {
+        assertEquals(null, PdfViewerHelpers.parseArgbHex("not-a-color"))
+        assertEquals(null, PdfViewerHelpers.parseArgbHex("#12345"))
+        assertEquals(null, PdfViewerHelpers.parseArgbHex(null))
+    }
 }

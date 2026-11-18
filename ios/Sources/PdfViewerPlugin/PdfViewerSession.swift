@@ -24,6 +24,7 @@ struct PdfOpenRequest {
     let scrollMode: String
     let nativeUi: Bool
     let layout: PdfLayoutCss
+    let backgroundColorHex: String?
 }
 
 final class PdfViewerSession: NSObject, PDFViewDelegate {
@@ -47,6 +48,7 @@ final class PdfViewerSession: NSObject, PDFViewDelegate {
   private var webViewWasOpaque = true
   private var isHiddenLayer = false
   private var touchRouter: PdfWebViewTouchRouter?
+  private var customBackgroundColor: UIColor?
 
     init(plugin: CAPPlugin, webView: WKWebView?, hostController: UIViewController?) {
         self.plugin = plugin
@@ -64,7 +66,13 @@ final class PdfViewerSession: NSObject, PDFViewDelegate {
         view.usePageViewController(request.scrollMode == "single", withViewOptions: nil)
         view.document = request.document
         view.delegate = self
-        view.backgroundColor = request.mode == "underWebView" ? .clear : .systemBackground
+        if let parsed = PdfViewer.color(fromHex: request.backgroundColorHex) {
+            customBackgroundColor = parsed
+            view.backgroundColor = parsed
+        } else {
+            customBackgroundColor = nil
+            view.backgroundColor = request.mode == "underWebView" ? .clear : .systemBackground
+        }
 
         let index = PdfViewer.pageIndex(fromOneBased: request.page, pageCount: request.document.pageCount)
         if let target = request.document.page(at: index) {
@@ -101,6 +109,24 @@ final class PdfViewerSession: NSObject, PDFViewDelegate {
             attachFullscreen(view: view, showNativeUi: request.nativeUi)
             finishOpen(call: call, document: request.document, pdfView: view)
         }
+    }
+
+    func setBackgroundColor(_ hex: String, call: CAPPluginCall) {
+        guard let pdfView else {
+            call.reject("No PDF is open")
+            return
+        }
+        guard let color = PdfViewer.color(fromHex: hex) else {
+            call.reject("Invalid color; expected #RRGGBB or #AARRGGBB")
+            return
+        }
+        customBackgroundColor = color
+        pdfView.backgroundColor = color
+        if let controller = fullscreenController {
+            let shellColor = customBackgroundColor ?? .systemBackground
+            controller.view.backgroundColor = shellColor
+        }
+        call.resolve()
     }
 
     func goToPage(_ pageNumber: Int, call: CAPPluginCall) {
@@ -252,6 +278,7 @@ final class PdfViewerSession: NSObject, PDFViewDelegate {
         isInline = false
         isUnderWebView = false
         isHiddenLayer = false
+        customBackgroundColor = nil
 
         if emitClose {
             plugin?.notifyListeners("close", data: [:])
@@ -288,7 +315,7 @@ final class PdfViewerSession: NSObject, PDFViewDelegate {
     private func attachFullscreen(view: PDFView, showNativeUi: Bool) {
         guard let hostController else { return }
         let controller = UIViewController()
-        controller.view.backgroundColor = .systemBackground
+        controller.view.backgroundColor = customBackgroundColor ?? .systemBackground
         view.translatesAutoresizingMaskIntoConstraints = false
         controller.view.addSubview(view)
 
