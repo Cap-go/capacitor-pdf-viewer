@@ -48,18 +48,19 @@ internal object PdfViewerHelpers {
      */
     fun parseArgbHex(hex: String?): Int? {
         if (hex.isNullOrBlank()) return null
-        val normalized = hex.trim().let { value ->
-            if (value.startsWith("#")) value else "#$value"
+        var cleaned = hex.trim()
+        if (cleaned.startsWith("#")) {
+            cleaned = cleaned.substring(1)
         }
-        if (!HEX_COLOR.matcher(normalized).matches()) return null
-        return try {
-            android.graphics.Color.parseColor(normalized)
-        } catch (_: IllegalArgumentException) {
-            null
+        if (cleaned.length != 6 && cleaned.length != 8) return null
+        if (!cleaned.all { it.isDigit() || it in 'a'..'f' || it in 'A'..'F' }) return null
+        val value = cleaned.toLongOrNull(16) ?: return null
+        return when (cleaned.length) {
+            6 -> (0xFF000000 or value).toInt()
+            8 -> value.toInt()
+            else -> null
         }
     }
-
-    private val HEX_COLOR = java.util.regex.Pattern.compile("^#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$")
 
     private fun looksLikeBase64(value: String): Boolean {
         val compact = value.replace("\\s".toRegex(), "")
