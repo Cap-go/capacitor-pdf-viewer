@@ -7,8 +7,9 @@ describe('parseCssHexColor', () => {
     expect(parseCssHexColor('#1a2b3c')).toBe('#1a2b3c');
   });
 
-  it('accepts #AARRGGBB', () => {
-    expect(parseCssHexColor('#80112233')).toBe('#80112233');
+  it('converts #AARRGGBB to CSS #RRGGBBAA', () => {
+    expect(parseCssHexColor('#80112233')).toBe('#11223380');
+    expect(parseCssHexColor('#80ff0000')).toBe('#ff000080');
   });
 
   it('normalizes case', () => {
