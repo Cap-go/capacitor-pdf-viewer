@@ -1,5 +1,6 @@
 import { WebPlugin } from '@capacitor/core';
 
+import { parseCssHexColor } from './color-utils';
 import type {
   GoToPageOptions,
   OpenPdfOptions,
@@ -12,7 +13,6 @@ import type {
   SetBackgroundColorOptions,
   SetZoomOptions,
 } from './definitions';
-import { parseCssHexColor } from './color-utils';
 import { inferSourceType, sourceToBlobUrl } from './source-utils';
 
 export class PdfViewerWeb extends WebPlugin implements PdfViewerPlugin {
