@@ -43,12 +43,12 @@ class PdfViewerHelpersTest {
 
     @Test
     fun parseArgbHex_rrggbb() {
-        assertEquals(android.graphics.Color.parseColor("#1a2b3c"), PdfViewerHelpers.parseArgbHex("#1a2b3c"))
+        assertEquals(0xFF1A2B3C.toInt(), PdfViewerHelpers.parseArgbHex("#1a2b3c"))
     }
 
     @Test
     fun parseArgbHex_aarrggbb() {
-        assertEquals(android.graphics.Color.parseColor("#80112233"), PdfViewerHelpers.parseArgbHex("#80112233"))
+        assertEquals(0x80112233.toInt(), PdfViewerHelpers.parseArgbHex("#80112233"))
     }
 
     @Test
