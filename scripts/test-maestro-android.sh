@@ -47,7 +47,6 @@ wait_for_device() {
     if [[ "$boot_completed" == "1" ]]; then
       return 0
     fi
-    sleep 2
   done
 
   echo "Android device $DEVICE_ID did not finish booting within ${timeout_seconds} seconds." >&2

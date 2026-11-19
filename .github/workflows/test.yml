@@ -167,14 +167,20 @@ jobs:
   maestro_android_background_color:
     needs: build_android
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     name: Maestro Android / background color
     steps:
       - name: Check out
         uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - uses: oven-sh/setup-bun@v2
+      - name: Cache Android emulator (API 30)
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: maestro-avd-api30-${{ runner.os }}-pixel_7-x86_64
       - name: Download Maestro Android APK
         uses: actions/download-artifact@v8
         with:
@@ -190,10 +196,10 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
       - name: Run Maestro background color flows
-        timeout-minutes: 10
+        timeout-minutes: 5
         env:
           CAPGO_MAESTRO_SKIP_BUILD: "1"
-          CAPGO_MAESTRO_EMULATOR_BOOT_TIMEOUT_SECONDS: "180"
+          CAPGO_MAESTRO_EMULATOR_BOOT_TIMEOUT_SECONDS: "120"
           MAESTRO_DRIVER_STARTUP_TIMEOUT: "120000"
         uses: reactivecircus/android-emulator-runner@v2
         with:
