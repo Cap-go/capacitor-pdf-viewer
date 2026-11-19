@@ -191,6 +191,10 @@ jobs:
           sudo udevadm trigger --name-match=kvm
       - name: Run Maestro background color flows
         timeout-minutes: 5
+        env:
+          CAPGO_MAESTRO_SKIP_BUILD: "1"
+          CAPGO_MAESTRO_EMULATOR_BOOT_TIMEOUT_SECONDS: "120"
+          MAESTRO_DRIVER_STARTUP_TIMEOUT: "120000"
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 30
@@ -198,7 +202,8 @@ jobs:
           profile: pixel_7
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -no-metrics
-          script: CAPGO_MAESTRO_SKIP_BUILD=1 CAPGO_MAESTRO_EMULATOR_BOOT_TIMEOUT_SECONDS=120 MAESTRO_DRIVER_STARTUP_TIMEOUT=120000 ./scripts/test-maestro-android.sh
+          # android-emulator-runner runs script lines in separate shells; use step env + one command.
+          script: bash ./scripts/test-maestro-android.sh
       - name: Upload Maestro artifacts
         if: always()
         uses: actions/upload-artifact@v7
