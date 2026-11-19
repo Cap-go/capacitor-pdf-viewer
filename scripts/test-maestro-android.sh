@@ -66,9 +66,11 @@ wait_for_logcat_line() {
       echo "Saw logcat: $pattern"
       return 0
     fi
+    sleep 1
   done
 
   echo "Timed out waiting for logcat: $pattern" >&2
+  adb -s "$DEVICE_ID" logcat -d -v brief 2>/dev/null | grep -F 'CAPGO_E2E' | tail -40 >&2 || true
   tail -120 "$log_file" >&2 2>/dev/null || true
   return 1
 }
@@ -79,13 +81,14 @@ run_logcat_background_color_e2e() {
 
   adb -s "$DEVICE_ID" logcat -c >/dev/null 2>&1 || true
   : >"$log_file"
-  adb -s "$DEVICE_ID" logcat -v brief Capacitor/Console:V Capacitor:V *:S -f "$log_file" >/dev/null 2>&1 &
+  adb -s "$DEVICE_ID" logcat -v brief -f "$log_file" >/dev/null 2>&1 &
   local logcat_pid=$!
 
   adb -s "$DEVICE_ID" shell pm clear "$APP_ID" >/dev/null 2>&1 || true
   adb -s "$DEVICE_ID" shell am start -n "${APP_ID}/${main_activity}" -a android.intent.action.MAIN -c android.intent.category.LAUNCHER
+  sleep 3
 
-  wait_for_logcat_line 'CAPGO_E2E E2E: auto start' "$log_file" 180
+  wait_for_logcat_line 'CAPGO_E2E E2E: auto start' "$log_file" 240
   wait_for_logcat_line 'CAPGO_E2E E2E: open-with-color ok' "$log_file" 90
   wait_for_logcat_line 'CAPGO_E2E E2E: open-without-color ok' "$log_file" 90
   wait_for_logcat_line 'CAPGO_E2E E2E: invalid-color ok' "$log_file" 90

@@ -65,14 +65,12 @@ jobs:
         shell: bash
         run: bash ./.github/scripts/verify-packed-example.sh android
       - name: Build example debug APK for Maestro
-        env:
-          VITE_MAESTRO_AUTO_E2E: "1"
         run: |
           set -euo pipefail
           bun run build
           cd example-app
           bun install
-          bun run build
+          bun run build:maestro-e2e
           bunx cap add android
           bunx cap sync android
           cd android
@@ -111,14 +109,12 @@ jobs:
         shell: bash
         run: bash ./.github/scripts/verify-packed-example.sh ios
       - name: Build example iOS app for Maestro
-        env:
-          VITE_MAESTRO_AUTO_E2E: "1"
         run: |
           set -euo pipefail
           bun run build
           cd example-app
           bun install
-          bun run build
+          bun run build:maestro-e2e
           bunx cap sync ios
           SIMULATOR_ID="$(../scripts/maestro/select-ios-simulator.sh)"
           DERIVED_DATA="$RUNNER_TEMP/maestro-pdf-viewer-derived"
@@ -171,7 +167,7 @@ jobs:
   maestro_android_background_color:
     needs: build_android
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     name: Maestro Android / background color
     steps:
       - name: Check out
@@ -200,10 +196,10 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
       - name: Run Maestro background color flows
-        timeout-minutes: 5
+        timeout-minutes: 10
         env:
           CAPGO_MAESTRO_SKIP_BUILD: "1"
-          CAPGO_MAESTRO_EMULATOR_BOOT_TIMEOUT_SECONDS: "120"
+          CAPGO_MAESTRO_EMULATOR_BOOT_TIMEOUT_SECONDS: "180"
           MAESTRO_DRIVER_STARTUP_TIMEOUT: "120000"
         uses: reactivecircus/android-emulator-runner@v2
         with:

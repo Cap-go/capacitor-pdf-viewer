@@ -489,5 +489,6 @@ document.getElementById('custom-close').addEventListener('click', async () => {
 });
 
 if (import.meta.env.VITE_MAESTRO_AUTO_E2E === '1' && Capacitor.isNativePlatform()) {
+  console.info('CAPGO_E2E E2E: js module ready');
   void runMaestroAutoE2e();
 }
