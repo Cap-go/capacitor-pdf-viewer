@@ -218,7 +218,10 @@ const withE2eTimeout = (promise, label) => {
   ]);
 };
 
-const openE2eFromSource = async (source, options = {}) => {
+const openE2eViewer = async (source, options = {}) => {
+  if (import.meta.env.VITE_MAESTRO_FULLSCREEN_BG === '1') {
+    return openFullscreenFromSource(source, { nativeUi: false, ...options });
+  }
   const result = await PdfViewer.open({
     source,
     sourceType: 'base64',
@@ -271,7 +274,7 @@ const runE2eOpenWithColor = async () => {
     setCustomUiVisible(false);
     const source = await bundledSample();
     await withE2eTimeout(
-      openE2eFromSource(source, { backgroundColor: '#224466' }),
+      openE2eViewer(source, { backgroundColor: '#224466' }),
       'open-with-color',
     );
     await expectNativeBackground('#ff224466');
@@ -297,7 +300,7 @@ const runE2eOpenWithoutColor = async () => {
     cancelAutoOpenCustomUi();
     setCustomUiVisible(false);
     const source = await bundledSample();
-    await withE2eTimeout(openE2eFromSource(source), 'open-without-color');
+    await withE2eTimeout(openE2eViewer(source), 'open-without-color');
     const fallback = defaultCanvasArgb();
     if (fallback) {
       await expectNativeBackground(fallback);
@@ -329,7 +332,7 @@ const runE2eInvalidColors = async () => {
     setCustomUiVisible(false);
     const source = await bundledSample();
     await withE2eTimeout(
-      openE2eFromSource(source, { backgroundColor: 'not-a-color' }),
+      openE2eViewer(source, { backgroundColor: 'not-a-color' }),
       'invalid-color-open',
     );
     const fallback = defaultCanvasArgb() ?? null;
@@ -366,7 +369,7 @@ const runE2eRelaunchDefault = async () => {
     cancelAutoOpenCustomUi();
     setCustomUiVisible(false);
     const source = await bundledSample();
-    await withE2eTimeout(openE2eFromSource(source), 'relaunch-default');
+    await withE2eTimeout(openE2eViewer(source), 'relaunch-default');
     const fallback = defaultCanvasArgb();
     if (fallback) {
       await expectNativeBackground(fallback);

@@ -6,7 +6,7 @@
   "scripts": {
     "start": "vite",
     "build": "vite build",
-    "build:maestro-e2e": "vite build",
+    "build:maestro-e2e": "VITE_MAESTRO_FULLSCREEN_BG=1 vite build",
     "preview": "vite preview",
     "generate:pdf": "bun scripts/generate-sample-pdf.mjs"
   },

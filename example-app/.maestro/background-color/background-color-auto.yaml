@@ -10,7 +10,9 @@ appId: app.capgo.pdfviewer
     visible: 'E2E: set-bg-while-open ok #ff335577'
     timeout: 90000
 - assertVisible: 'E2E: set-bg-while-open ok #ff335577'
+- assertVisible: 'E2E native bg: #ff335577'
 - takeScreenshot: e2e-custom-bg-open
+- pressKey: back
 - tapOn: 'E2E open without bg'
 - extendedWaitUntil:
     visible: 'E2E: open-without-color ok'
