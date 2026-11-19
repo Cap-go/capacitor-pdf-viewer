@@ -607,20 +607,7 @@ if (Capacitor.isNativePlatform()) {
 
 if (import.meta.env.VITE_MAESTRO_AUTO_E2E === '1' && Capacitor.isNativePlatform()) {
   console.info('CAPGO_E2E E2E: js module ready');
-  void (async () => {
-    try {
-      const state = await PdfViewer.getE2eHarnessState();
-      if (state.autoPassComplete) {
-        await setE2eStatus('E2E: idle');
-        return;
-      }
-    } catch (error) {
-      console.warn('getE2eHarnessState unavailable; running auto E2E', error);
-    }
-    try {
-      await runMaestroAutoE2e();
-    } catch (error) {
-      await setE2eStatus(`E2E: failed ${error?.message ?? error}`);
-    }
-  })();
+  void runMaestroAutoE2e().catch(async (error) => {
+    await setE2eStatus(`E2E: failed ${error?.message ?? error}`);
+  });
 }
