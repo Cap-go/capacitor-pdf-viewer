@@ -7,6 +7,9 @@ androidWebViewHierarchy: devtools
     visible: 'PDF Viewer'
     timeout: 45000
 - extendedWaitUntil:
+    visible: 'E2E: auto start'
+    timeout: 60000
+- extendedWaitUntil:
     visible: 'e2e: E2E: open-with-color ok'
     timeout: 60000
 - extendedWaitUntil:
