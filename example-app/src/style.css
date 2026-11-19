@@ -1,4 +1,22 @@
 /* Capacitor example app defaults */
+.e2e-status {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2147483647;
+  margin: 0;
+  padding: 6px 10px;
+  font:
+    600 12px/1.3 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+  color: #e2f3ff;
+  background: rgba(0, 22, 42, 0.92);
+  pointer-events: none;
+}
+
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;

@@ -254,4 +254,21 @@ describe('PdfViewerWeb', () => {
     });
     await expect(viewer.setBackgroundColor({ color: 'nope' })).rejects.toThrow(/Invalid color/i);
   });
+
+  it('does not paint inline host #111 when backgroundColor is omitted', async () => {
+    const host = document.createElement('div');
+    host.id = 'inline-host-test';
+    document.body.appendChild(host);
+    await viewer.open({
+      source: SAMPLE_PDF_BASE64,
+      sourceType: 'base64',
+      mode: 'inline',
+      elementId: 'inline-host-test',
+    });
+    const frame = document.querySelector('iframe[title="PDF Viewer"]') as HTMLIFrameElement;
+    expect(frame.style.background).not.toBe('#111');
+    expect(host.style.background).not.toBe('#111');
+    expect(frame.style.background).toBe('');
+    expect(host.style.background).toBe('');
+  });
 });

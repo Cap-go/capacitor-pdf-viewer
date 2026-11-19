@@ -17,6 +17,18 @@
 
 **Custom viewer background:** pass `backgroundColor: '#RRGGBB'` (or `#AARRGGBB`) on `PdfViewer.open()` to tint the area around and between PDF pages on iOS and Android (defaults stay black on Android and system background on iOS). Call `PdfViewer.setBackgroundColor({ color: '#RRGGBB' })` to update the tint while the viewer stays open without reopening the document.
 
+```typescript
+await PdfViewer.open({
+  source: pdfBase64,
+  sourceType: 'base64',
+  mode: 'fullscreen',
+  backgroundColor: '#1e293b',
+});
+await PdfViewer.setBackgroundColor({ color: '#0f172a' });
+```
+
+In `underWebView` / `toBack` mode, the native stack stays transparent when you omit `backgroundColor`. Android and iOS both use a clear canvas shell so your HTML chrome controls the visible backdrop.
+
 ## Built and maintained with AI
 
 We build, improve and fix our plugins with heavy use of AI, so issues usually get fixed in under a day and pull requests get feedback the same day. A human still reviews, tests and merges 50+ pull requests daily.

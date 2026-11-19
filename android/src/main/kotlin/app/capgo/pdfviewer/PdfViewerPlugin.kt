@@ -308,7 +308,10 @@ class PdfViewerPlugin : Plugin() {
         }
 
         val parsedBackground = PdfViewerHelpers.parseArgbHex(backgroundColorHex)
-        val defaultCanvasColor = Color.BLACK
+        val defaultCanvasColor = when {
+            underWebView -> Color.TRANSPARENT
+            else -> Color.BLACK
+        }
         val canvasColor = parsedBackground ?: defaultCanvasColor
 
         val container = FrameLayout(context)

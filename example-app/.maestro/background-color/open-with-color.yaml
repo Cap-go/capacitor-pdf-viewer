@@ -1,0 +1,11 @@
+appId: app.capgo.pdfviewer
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: 'PDF Viewer'
+    timeout: 45000
+- tapOn: 'E2E open with bg'
+- extendedWaitUntil:
+    visible: 'E2E: open-with-color ok'
+    timeout: 60000

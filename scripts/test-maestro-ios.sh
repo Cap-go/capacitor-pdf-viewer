@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+EXAMPLE_DIR="$ROOT_DIR/example-app"
+FLOW_PATH="${CAPGO_MAESTRO_FLOW_PATH:-$ROOT_DIR/example-app/.maestro/background-color}"
+RESULTS_DIR="${CAPGO_MAESTRO_RESULTS_DIR:-$ROOT_DIR/maestro-results-ios}"
+SKIP_BUILD="${CAPGO_MAESTRO_SKIP_BUILD:-0}"
+APP_ID="app.capgo.pdfviewer"
+
+export MAESTRO_DRIVER_STARTUP_TIMEOUT="${MAESTRO_DRIVER_STARTUP_TIMEOUT:-120000}"
+export MAESTRO_CLI_NO_ANALYTICS="${MAESTRO_CLI_NO_ANALYTICS:-1}"
+
+if [[ ! -d "$FLOW_PATH" && ! -f "$FLOW_PATH" ]]; then
+  echo "Maestro flow path not found: $FLOW_PATH" >&2
+  exit 1
+fi
+
+if ! command -v maestro >/dev/null 2>&1; then
+  echo "maestro is required to run iOS Maestro tests." >&2
+  exit 1
+fi
+
+SIMULATOR_ID="${CAPGO_MAESTRO_IOS_SIMULATOR_ID:-$("$ROOT_DIR/scripts/maestro/select-ios-simulator.sh")}"
+DERIVED_DATA_PATH="${CAPGO_MAESTRO_IOS_DERIVED_DATA_PATH:-$RUNNER_TEMP/maestro-pdf-viewer-derived}"
+
+if [[ "$SKIP_BUILD" != "1" ]]; then
+  (cd "$ROOT_DIR" && bun run build)
+  (
+    cd "$EXAMPLE_DIR"
+    bun install
+    bun run build
+    if [[ ! -d ios ]]; then
+      bunx cap add ios
+    fi
+    bunx cap sync ios
+  )
+  rm -rf "$DERIVED_DATA_PATH"
+  xcodebuild \
+    -project "$EXAMPLE_DIR/ios/App/App.xcodeproj" \
+    -scheme App \
+    -configuration Debug \
+    -destination "id=$SIMULATOR_ID" \
+    -derivedDataPath "$DERIVED_DATA_PATH" \
+    build
+fi
+
+APP_PATH="$DERIVED_DATA_PATH/Build/Products/Debug-iphonesimulator/App.app"
+if [[ ! -d "$APP_PATH" ]]; then
+  echo "Expected iOS simulator app at $APP_PATH" >&2
+  exit 1
+fi
+
+xcrun simctl boot "$SIMULATOR_ID" >/dev/null 2>&1 || true
+xcrun simctl bootstatus "$SIMULATOR_ID" -b
+xcrun simctl uninstall "$SIMULATOR_ID" "$APP_ID" >/dev/null 2>&1 || true
+xcrun simctl install "$SIMULATOR_ID" "$APP_PATH"
+
+rm -rf "$RESULTS_DIR"
+mkdir -p "$RESULTS_DIR"
+
+maestro --device "$SIMULATOR_ID" test \
+  "$FLOW_PATH" \
+  --debug-output "$RESULTS_DIR/artifacts" \
+  --flatten-debug-output \
+  --format junit \
+  --output "$RESULTS_DIR/junit.xml"

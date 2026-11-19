@@ -70,8 +70,6 @@ export class PdfViewerWeb extends WebPlugin implements PdfViewerPlugin {
       const url = `${blobUrl}#page=${this.page}`;
 
       const parsedBackground = parseCssHexColor(options.backgroundColor);
-      const shellBackground = parsedBackground ?? '#111';
-
       const frame = document.createElement('iframe');
       frame.title = 'PDF Viewer';
       frame.src = url;
@@ -80,8 +78,10 @@ export class PdfViewerWeb extends WebPlugin implements PdfViewerPlugin {
         border: '0',
         width: '100%',
         height: '100%',
-        background: shellBackground,
       });
+      if (parsedBackground) {
+        frame.style.background = parsedBackground;
+      }
 
       let host: HTMLElement;
       if (mode === 'inline' && options.elementId) {
@@ -97,8 +97,10 @@ export class PdfViewerWeb extends WebPlugin implements PdfViewerPlugin {
         Object.assign(host.style, {
           position: host.style.position || 'relative',
           overflow: 'hidden',
-          background: shellBackground,
         });
+        if (parsedBackground) {
+          host.style.background = parsedBackground;
+        }
         host.appendChild(frame);
       } else {
         host = document.createElement('div');

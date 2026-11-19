@@ -46,6 +46,14 @@ const invalidateCustomUiOpen = () => {
   demoOpenGeneration += 1;
 };
 
+const e2eStatus = document.getElementById('e2e-status');
+
+const setE2eStatus = (text) => {
+  if (e2eStatus) {
+    e2eStatus.textContent = text;
+  }
+};
+
 const log = (label, value) => {
   const line = typeof value === 'string' ? value : JSON.stringify(value);
   const stamp = new Date().toISOString().slice(11, 19);
@@ -147,6 +155,91 @@ if (!Capacitor.isNativePlatform()) {
     }
   });
 }
+
+const openFullscreenFromSource = async (source, options = {}) => {
+  zoom = 1;
+  const result = await PdfViewer.open({
+    source,
+    sourceType: 'base64',
+    mode: 'fullscreen',
+    page: 1,
+    scrollMode: 'continuous',
+    ...options,
+  });
+  currentPage = result.page;
+  pageCount = result.pageCount;
+  return result;
+};
+
+document.getElementById('e2e-open-with-color')?.addEventListener('click', async () => {
+  if (!Capacitor.isNativePlatform()) {
+    setE2eStatus('E2E: native only');
+    return;
+  }
+  setE2eStatus('E2E: running');
+  try {
+    cancelAutoOpenCustomUi();
+    setCustomUiVisible(false);
+    const source = await bundledSample();
+    await openFullscreenFromSource(source, { backgroundColor: '#224466' });
+    await PdfViewer.close();
+    setE2eStatus('E2E: open-with-color ok');
+  } catch (error) {
+    await PdfViewer.close().catch(() => {});
+    setE2eStatus(`E2E: failed ${error?.message ?? error}`);
+    log('error', error?.message ?? error);
+  }
+});
+
+document.getElementById('e2e-open-without-color')?.addEventListener('click', async () => {
+  if (!Capacitor.isNativePlatform()) {
+    setE2eStatus('E2E: native only');
+    return;
+  }
+  setE2eStatus('E2E: running');
+  try {
+    cancelAutoOpenCustomUi();
+    setCustomUiVisible(false);
+    const source = await bundledSample();
+    await openFullscreenFromSource(source);
+    await PdfViewer.close();
+    setE2eStatus('E2E: open-without-color ok');
+  } catch (error) {
+    await PdfViewer.close().catch(() => {});
+    setE2eStatus(`E2E: failed ${error?.message ?? error}`);
+    log('error', error?.message ?? error);
+  }
+});
+
+document.getElementById('e2e-invalid-colors')?.addEventListener('click', async () => {
+  if (!Capacitor.isNativePlatform()) {
+    setE2eStatus('E2E: native only');
+    return;
+  }
+  setE2eStatus('E2E: running');
+  try {
+    cancelAutoOpenCustomUi();
+    setCustomUiVisible(false);
+    const source = await bundledSample();
+    await openFullscreenFromSource(source, { backgroundColor: 'not-a-color' });
+    let rejected = false;
+    try {
+      await PdfViewer.setBackgroundColor({ color: 'bad' });
+    } catch (setError) {
+      rejected = /invalid color/i.test(String(setError?.message ?? setError));
+    }
+    await PdfViewer.close();
+    if (!rejected) {
+      setE2eStatus('E2E: invalid setBackgroundColor not rejected');
+      return;
+    }
+    setE2eStatus('E2E: invalid-color ok');
+  } catch (error) {
+    await PdfViewer.close().catch(() => {});
+    setE2eStatus(`E2E: failed ${error?.message ?? error}`);
+    log('error', error?.message ?? error);
+  }
+});
 
 document.getElementById('open-fullscreen').addEventListener('click', async () => {
   try {
