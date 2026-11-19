@@ -198,7 +198,7 @@ const openE2eFromSource = async (source, options = {}) => {
   return result;
 };
 
-document.getElementById('e2e-open-with-color')?.addEventListener('click', async () => {
+const runE2eOpenWithColor = async () => {
   if (!Capacitor.isNativePlatform()) {
     setE2eStatus('E2E: native only');
     return;
@@ -219,9 +219,9 @@ document.getElementById('e2e-open-with-color')?.addEventListener('click', async 
     setE2eStatus(`E2E: failed ${error?.message ?? error}`);
     log('error', error?.message ?? error);
   }
-});
+};
 
-document.getElementById('e2e-open-without-color')?.addEventListener('click', async () => {
+const runE2eOpenWithoutColor = async () => {
   if (!Capacitor.isNativePlatform()) {
     setE2eStatus('E2E: native only');
     return;
@@ -239,9 +239,9 @@ document.getElementById('e2e-open-without-color')?.addEventListener('click', asy
     setE2eStatus(`E2E: failed ${error?.message ?? error}`);
     log('error', error?.message ?? error);
   }
-});
+};
 
-document.getElementById('e2e-invalid-colors')?.addEventListener('click', async () => {
+const runE2eInvalidColors = async () => {
   if (!Capacitor.isNativePlatform()) {
     setE2eStatus('E2E: native only');
     return;
@@ -272,6 +272,26 @@ document.getElementById('e2e-invalid-colors')?.addEventListener('click', async (
     setE2eStatus(`E2E: failed ${error?.message ?? error}`);
     log('error', error?.message ?? error);
   }
+};
+
+const runMaestroAutoE2e = async () => {
+  setE2eStatus('E2E: auto start');
+  await runE2eOpenWithColor();
+  await runE2eOpenWithoutColor();
+  await runE2eInvalidColors();
+  setE2eStatus('E2E: auto complete');
+};
+
+document.getElementById('e2e-open-with-color')?.addEventListener('click', () => {
+  void runE2eOpenWithColor();
+});
+
+document.getElementById('e2e-open-without-color')?.addEventListener('click', () => {
+  void runE2eOpenWithoutColor();
+});
+
+document.getElementById('e2e-invalid-colors')?.addEventListener('click', () => {
+  void runE2eInvalidColors();
 });
 
 document.getElementById('open-fullscreen').addEventListener('click', async () => {
@@ -466,3 +486,7 @@ document.getElementById('custom-close').addEventListener('click', async () => {
     setCustomCloseEnabled(true);
   }
 });
+
+if (import.meta.env.VITE_MAESTRO_AUTO_E2E === '1' && Capacitor.isNativePlatform()) {
+  void runMaestroAutoE2e();
+}

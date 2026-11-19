@@ -1,4 +1,2 @@
 flows:
-  - open-with-color.yaml
-  - open-without-color.yaml
-  - invalid-color.yaml
+  - auto-background-color.yaml
