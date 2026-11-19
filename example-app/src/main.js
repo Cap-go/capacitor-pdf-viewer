@@ -171,6 +171,22 @@ const openFullscreenFromSource = async (source, options = {}) => {
   return result;
 };
 
+const openE2eFromSource = async (source, options = {}) => {
+  const result = await PdfViewer.open({
+    source,
+    sourceType: 'base64',
+    mode: 'inline',
+    elementId: 'inline-pdf',
+    page: 1,
+    scrollMode: 'continuous',
+    nativeUi: false,
+    ...options,
+  });
+  currentPage = result.page;
+  pageCount = result.pageCount;
+  return result;
+};
+
 document.getElementById('e2e-open-with-color')?.addEventListener('click', async () => {
   if (!Capacitor.isNativePlatform()) {
     setE2eStatus('E2E: native only');
@@ -181,7 +197,7 @@ document.getElementById('e2e-open-with-color')?.addEventListener('click', async 
     cancelAutoOpenCustomUi();
     setCustomUiVisible(false);
     const source = await bundledSample();
-    await openFullscreenFromSource(source, { backgroundColor: '#224466' });
+    await openE2eFromSource(source, { backgroundColor: '#224466' });
     await PdfViewer.close();
     setE2eStatus('E2E: open-with-color ok');
   } catch (error) {
@@ -201,7 +217,7 @@ document.getElementById('e2e-open-without-color')?.addEventListener('click', asy
     cancelAutoOpenCustomUi();
     setCustomUiVisible(false);
     const source = await bundledSample();
-    await openFullscreenFromSource(source);
+    await openE2eFromSource(source);
     await PdfViewer.close();
     setE2eStatus('E2E: open-without-color ok');
   } catch (error) {
@@ -221,7 +237,7 @@ document.getElementById('e2e-invalid-colors')?.addEventListener('click', async (
     cancelAutoOpenCustomUi();
     setCustomUiVisible(false);
     const source = await bundledSample();
-    await openFullscreenFromSource(source, { backgroundColor: 'not-a-color' });
+    await openE2eFromSource(source, { backgroundColor: 'not-a-color' });
     let rejected = false;
     try {
       await PdfViewer.setBackgroundColor({ color: 'bad' });

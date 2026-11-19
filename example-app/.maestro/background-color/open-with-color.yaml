@@ -13,4 +13,4 @@ androidWebViewHierarchy: devtools
 - tapOn: 'E2E open with bg'
 - extendedWaitUntil:
     visible: 'E2E: open-with-color ok'
-    timeout: 60000
+    timeout: 45000
