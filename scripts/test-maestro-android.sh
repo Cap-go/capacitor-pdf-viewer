@@ -57,34 +57,41 @@ wait_for_device() {
 
 wait_for_logcat_line() {
   local pattern="$1"
-  local timeout_seconds="${2:-120}"
+  local log_file="$2"
+  local timeout_seconds="${3:-120}"
+  local deadline=$((SECONDS + timeout_seconds))
 
-  if timeout "${timeout_seconds}s" adb -s "$DEVICE_ID" logcat -v brief \
-    chromium:V \
-    Capacitor/Console:V \
-    Capacitor:V \
-  *:S 2>/dev/null | grep -m1 -F --line-buffered "$pattern" >/dev/null; then
-    echo "Saw logcat: $pattern"
-    return 0
-  fi
+  while ((SECONDS < deadline)); do
+    if [[ -f "$log_file" ]] && grep -Fq "$pattern" "$log_file"; then
+      echo "Saw logcat: $pattern"
+      return 0
+    fi
+  done
 
   echo "Timed out waiting for logcat: $pattern" >&2
-  adb -s "$DEVICE_ID" logcat -d -v brief chromium:V Capacitor/Console:V Capacitor:V *:S 2>/dev/null | tail -120 >&2 || true
+  tail -120 "$log_file" >&2 2>/dev/null || true
   return 1
 }
 
 run_logcat_background_color_e2e() {
   local main_activity="${CAPGO_MAESTRO_ANDROID_MAIN_ACTIVITY:-.MainActivity}"
+  local log_file="$RESULTS_DIR/logcat.txt"
 
   adb -s "$DEVICE_ID" logcat -c >/dev/null 2>&1 || true
+  : >"$log_file"
+  adb -s "$DEVICE_ID" logcat -v brief Capacitor/Console:V Capacitor:V *:S -f "$log_file" >/dev/null 2>&1 &
+  local logcat_pid=$!
+
   adb -s "$DEVICE_ID" shell pm clear "$APP_ID" >/dev/null 2>&1 || true
   adb -s "$DEVICE_ID" shell am start -n "${APP_ID}/${main_activity}" -a android.intent.action.MAIN -c android.intent.category.LAUNCHER
 
-  wait_for_logcat_line 'CAPGO_E2E E2E: auto start' 90
-  wait_for_logcat_line 'CAPGO_E2E E2E: open-with-color ok' 120
-  wait_for_logcat_line 'CAPGO_E2E E2E: open-without-color ok' 120
-  wait_for_logcat_line 'CAPGO_E2E E2E: invalid-color ok' 120
-  wait_for_logcat_line 'CAPGO_E2E E2E: auto complete' 120
+  wait_for_logcat_line 'CAPGO_E2E E2E: auto start' "$log_file" 180
+  wait_for_logcat_line 'CAPGO_E2E E2E: open-with-color ok' "$log_file" 90
+  wait_for_logcat_line 'CAPGO_E2E E2E: open-without-color ok' "$log_file" 90
+  wait_for_logcat_line 'CAPGO_E2E E2E: invalid-color ok' "$log_file" 90
+  wait_for_logcat_line 'CAPGO_E2E E2E: auto complete' "$log_file" 90
+
+  kill "$logcat_pid" >/dev/null 2>&1 || true
 
   cat >"$RESULTS_DIR/junit.xml" <<'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
