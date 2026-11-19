@@ -181,6 +181,7 @@ class PdfViewerPlugin : Plugin() {
             val label = ensureE2eHarnessLabel()
             label.text = text
             label.contentDescription = text
+            label.bringToFront()
             call.resolve()
         }
     }
@@ -198,13 +199,16 @@ class PdfViewerPlugin : Plugin() {
                 isClickable = false
                 importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES
             }
-        val decor = activity.window.decorView as ViewGroup
+        label.elevation = 10_000f
+        label.translationZ = 10_000f
+        val content = activity.findViewById<ViewGroup>(android.R.id.content)
         val params =
             FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
             ).apply { gravity = Gravity.TOP }
-        decor.addView(label, params)
+        content.addView(label, params)
+        label.bringToFront()
         e2eHarnessLabel = label
         return label
     }

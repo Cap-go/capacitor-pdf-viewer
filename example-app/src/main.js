@@ -60,13 +60,13 @@ const mirrorE2eHarness = async (text) => {
   }
 };
 
-const setE2eStatus = (text) => {
+const setE2eStatus = async (text) => {
   if (e2eStatus) {
     e2eStatus.textContent = text;
   }
   log('e2e', text);
   console.info(`CAPGO_E2E ${text}`);
-  void mirrorE2eHarness(text);
+  await mirrorE2eHarness(text);
 };
 
 const setE2eNativeBgLabel = (hex) => {
@@ -246,10 +246,10 @@ const defaultCanvasArgb = () => {
 
 const runE2eOpenWithColor = async () => {
   if (!Capacitor.isNativePlatform()) {
-    setE2eStatus('E2E: native only');
+    await setE2eStatus('E2E: native only');
     return false;
   }
-  setE2eStatus('E2E: running open-with-color');
+  await setE2eStatus('E2E: running open-with-color');
   try {
     cancelAutoOpenCustomUi();
     setCustomUiVisible(false);
@@ -262,22 +262,22 @@ const runE2eOpenWithColor = async () => {
     await PdfViewer.setBackgroundColor({ color: '#335577' });
     await expectNativeBackground('#ff335577');
     await PdfViewer.close();
-    setE2eStatus('E2E: set-bg-while-open ok #ff335577');
-    setE2eStatus('E2E: open-with-color ok');
+    await setE2eStatus('E2E: set-bg-while-open ok #ff335577');
+    await setE2eStatus('E2E: open-with-color ok');
     return true;
   } catch (error) {
     await PdfViewer.close().catch(() => {});
-    setE2eStatus(`E2E: failed ${error?.message ?? error}`);
+    await setE2eStatus(`E2E: failed ${error?.message ?? error}`);
     return false;
   }
 };
 
 const runE2eOpenWithoutColor = async () => {
   if (!Capacitor.isNativePlatform()) {
-    setE2eStatus('E2E: native only');
+    await setE2eStatus('E2E: native only');
     return false;
   }
-  setE2eStatus('E2E: running open-without-color');
+  await setE2eStatus('E2E: running open-without-color');
   try {
     cancelAutoOpenCustomUi();
     setCustomUiVisible(false);
@@ -294,21 +294,21 @@ const runE2eOpenWithoutColor = async () => {
       }
     }
     await PdfViewer.close();
-    setE2eStatus('E2E: open-without-color ok');
+    await setE2eStatus('E2E: open-without-color ok');
     return true;
   } catch (error) {
     await PdfViewer.close().catch(() => {});
-    setE2eStatus(`E2E: failed ${error?.message ?? error}`);
+    await setE2eStatus(`E2E: failed ${error?.message ?? error}`);
     return false;
   }
 };
 
 const runE2eInvalidColors = async () => {
   if (!Capacitor.isNativePlatform()) {
-    setE2eStatus('E2E: native only');
+    await setE2eStatus('E2E: native only');
     return false;
   }
-  setE2eStatus('E2E: running invalid-colors');
+  await setE2eStatus('E2E: running invalid-colors');
   try {
     cancelAutoOpenCustomUi();
     setCustomUiVisible(false);
@@ -329,24 +329,24 @@ const runE2eInvalidColors = async () => {
     }
     await PdfViewer.close();
     if (!rejected) {
-      setE2eStatus('E2E: invalid setBackgroundColor not rejected');
+      await setE2eStatus('E2E: invalid setBackgroundColor not rejected');
       return false;
     }
-    setE2eStatus('E2E: invalid-color ok');
+    await setE2eStatus('E2E: invalid-color ok');
     return true;
   } catch (error) {
     await PdfViewer.close().catch(() => {});
-    setE2eStatus(`E2E: failed ${error?.message ?? error}`);
+    await setE2eStatus(`E2E: failed ${error?.message ?? error}`);
     return false;
   }
 };
 
 const runE2eRelaunchDefault = async () => {
   if (!Capacitor.isNativePlatform()) {
-    setE2eStatus('E2E: native only');
+    await setE2eStatus('E2E: native only');
     return false;
   }
-  setE2eStatus('E2E: running relaunch-default');
+  await setE2eStatus('E2E: running relaunch-default');
   try {
     cancelAutoOpenCustomUi();
     setCustomUiVisible(false);
@@ -360,17 +360,17 @@ const runE2eRelaunchDefault = async () => {
       setE2eNativeBgLabel(normalizeArgbHex(color));
     }
     await PdfViewer.close();
-    setE2eStatus('E2E: relaunch default ok');
+    await setE2eStatus('E2E: relaunch default ok');
     return true;
   } catch (error) {
     await PdfViewer.close().catch(() => {});
-    setE2eStatus(`E2E: failed ${error?.message ?? error}`);
+    await setE2eStatus(`E2E: failed ${error?.message ?? error}`);
     return false;
   }
 };
 
 const runMaestroAutoE2e = async () => {
-  setE2eStatus('E2E: auto start');
+  await setE2eStatus('E2E: auto start');
   const steps = [runE2eOpenWithColor, runE2eOpenWithoutColor, runE2eInvalidColors];
   for (const step of steps) {
     const ok = await step();
@@ -378,7 +378,7 @@ const runMaestroAutoE2e = async () => {
       return;
     }
   }
-  setE2eStatus('E2E: auto pass complete');
+  await setE2eStatus('E2E: auto pass complete');
 };
 
 document.getElementById('e2e-open-with-color')?.addEventListener('click', () => {
@@ -591,7 +591,9 @@ document.getElementById('custom-close').addEventListener('click', async () => {
 });
 
 if (Capacitor.isNativePlatform()) {
-  void mirrorE2eHarness('E2E: idle');
+  void (async () => {
+    await mirrorE2eHarness('E2E: idle');
+  })();
 }
 
 if (import.meta.env.VITE_MAESTRO_AUTO_E2E === '1' && Capacitor.isNativePlatform()) {

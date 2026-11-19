@@ -272,6 +272,7 @@ See **`example-app/`** (button **Custom UI (toBack)**) for a working demo.
 * [`setZoom(...)`](#setzoom)
 * [`setBackgroundColor(...)`](#setbackgroundcolor)
 * [`getViewerBackgroundColor()`](#getviewerbackgroundcolor)
+* [`setE2eHarnessLabel(...)`](#sete2eharnesslabel)
 * [`getPageCount()`](#getpagecount)
 * [`getCurrentPage()`](#getcurrentpage)
 * [`hide()`](#hide)
@@ -419,6 +420,23 @@ getViewerBackgroundColor() => Promise<ViewerBackgroundColorResult>
 Read the rendered viewer background while a PDF is open (example app E2E harness).
 
 **Returns:** <code>Promise&lt;<a href="#viewerbackgroundcolorresult">ViewerBackgroundColorResult</a>&gt;</code>
+
+**Since:** 8.0.0
+
+--------------------
+
+
+### setE2eHarnessLabel(...)
+
+```typescript
+setE2eHarnessLabel(options: SetE2eHarnessLabelOptions) => Promise<void>
+```
+
+Mirror E2E status text to a native on-screen label (example app Maestro harness).
+
+| Param         | Type                                                                            |
+| ------------- | ------------------------------------------------------------------------------- |
+| **`options`** | <code><a href="#sete2eharnesslabeloptions">SetE2eHarnessLabelOptions</a></code> |
 
 **Since:** 8.0.0
 
@@ -726,6 +744,15 @@ Result from {@link PdfViewerPlugin.getViewerBackgroundColor}.
 | Prop        | Type                | Description                                                         |
 | ----------- | ------------------- | ------------------------------------------------------------------- |
 | **`color`** | <code>string</code> | Active viewer background as `#AARRGGBB` (native canvas / PDF view). |
+
+
+#### SetE2eHarnessLabelOptions
+
+Options for {@link PdfViewerPlugin.setE2eHarnessLabel} (example app Maestro harness).
+
+| Prop       | Type                | Description                                                            |
+| ---------- | ------------------- | ---------------------------------------------------------------------- |
+| **`text`** | <code>string</code> | Label mirrored to a native on-screen view for Maestro `assertVisible`. |
 
 
 #### PdfPageCountResult
