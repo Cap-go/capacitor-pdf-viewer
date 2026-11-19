@@ -205,13 +205,12 @@ class PdfViewerPlugin : Plugin() {
             }
         label.elevation = 10_000f
         label.translationZ = 10_000f
-        val content = activity.findViewById<ViewGroup>(android.R.id.content)
         val params =
             FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
             ).apply { gravity = Gravity.TOP }
-        content.addView(label, params)
+        activity.window.addContentView(label, params)
         label.bringToFront()
         e2eHarnessLabel = label
         return label

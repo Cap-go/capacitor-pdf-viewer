@@ -53,10 +53,17 @@ const mirrorE2eHarness = async (text) => {
   if (!Capacitor.isNativePlatform()) {
     return;
   }
-  try {
-    await PdfViewer.setE2eHarnessLabel({ text });
-  } catch (error) {
-    console.warn('setE2eHarnessLabel failed', error);
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    try {
+      await PdfViewer.setE2eHarnessLabel({ text });
+      return;
+    } catch (error) {
+      if (attempt === 7) {
+        console.warn('setE2eHarnessLabel failed', error);
+        return;
+      }
+      await new Promise((resolve) => window.setTimeout(resolve, 250));
+    }
   }
 };
 
@@ -370,6 +377,7 @@ const runE2eRelaunchDefault = async () => {
 };
 
 const runMaestroAutoE2e = async () => {
+  await new Promise((resolve) => window.setTimeout(resolve, 400));
   await setE2eStatus('E2E: auto start');
   const steps = [runE2eOpenWithColor, runE2eOpenWithoutColor, runE2eInvalidColors];
   for (const step of steps) {

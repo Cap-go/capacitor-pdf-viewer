@@ -206,17 +206,16 @@ public class PdfViewerPlugin: CAPPlugin, CAPBridgedPlugin {
         label.backgroundColor = UIColor(red: 0, green: 0.09, blue: 0.16, alpha: 0.92)
         label.numberOfLines = 2
         label.isAccessibilityElement = true
-        guard let window = bridge?.viewController?.view.window else {
-            let standalone = UILabel()
-            e2eHarnessLabel = standalone
-            return standalone
+        let hostView = bridge?.viewController?.view
+        if let hostView {
+            hostView.addSubview(label)
+            NSLayoutConstraint.activate([
+                label.topAnchor.constraint(equalTo: hostView.safeAreaLayoutGuide.topAnchor),
+                label.leadingAnchor.constraint(equalTo: hostView.leadingAnchor),
+                label.trailingAnchor.constraint(equalTo: hostView.trailingAnchor),
+            ])
+            hostView.bringSubviewToFront(label)
         }
-        window.addSubview(label)
-        NSLayoutConstraint.activate([
-            label.topAnchor.constraint(equalTo: window.safeAreaLayoutGuide.topAnchor),
-            label.leadingAnchor.constraint(equalTo: window.leadingAnchor),
-            label.trailingAnchor.constraint(equalTo: window.trailingAnchor),
-        ])
         e2eHarnessLabel = label
         return label
     }
