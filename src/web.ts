@@ -12,6 +12,7 @@ import type {
   PluginVersionResult,
   SetBackgroundColorOptions,
   SetZoomOptions,
+  ViewerBackgroundColorResult,
 } from './definitions';
 import { inferSourceType, sourceToBlobUrl } from './source-utils';
 
@@ -211,6 +212,21 @@ export class PdfViewerWeb extends WebPlugin implements PdfViewerPlugin {
     }
     this.frame.style.background = parsed;
     this.host.style.background = parsed;
+  }
+
+  async getViewerBackgroundColor(): Promise<ViewerBackgroundColorResult> {
+    if (!this.host) {
+      throw new Error('No PDF is open');
+    }
+    const inline = parseCssHexColor(this.host.style.background);
+    if (inline) {
+      const hex = inline.slice(1);
+      if (hex.length === 8) {
+        return { color: `#${hex.slice(6, 8)}${hex.slice(0, 6)}` };
+      }
+      return { color: `#ff${hex}` };
+    }
+    return { color: '#00000000' };
   }
 
   async getPageCount(): Promise<PdfPageCountResult> {

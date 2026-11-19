@@ -129,6 +129,15 @@ final class PdfViewerSession: NSObject, PDFViewDelegate {
         call.resolve()
     }
 
+    func getViewerBackgroundColor(call: CAPPluginCall) {
+        guard let pdfView else {
+            call.reject("No PDF is open")
+            return
+        }
+        let hex = PdfViewer.hexString(from: pdfView.backgroundColor ?? .clear)
+        call.resolve(["color": hex])
+    }
+
     func goToPage(_ pageNumber: Int, call: CAPPluginCall) {
         guard let pdfView, let document = pdfView.document else {
             call.reject("No PDF is open")

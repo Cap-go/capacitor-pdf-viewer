@@ -207,6 +207,18 @@ export interface SetBackgroundColorOptions {
 }
 
 /**
+ * Result from {@link PdfViewerPlugin.getViewerBackgroundColor}.
+ *
+ * @since 8.0.0
+ */
+export interface ViewerBackgroundColorResult {
+  /**
+   * Active viewer background as `#AARRGGBB` (native canvas / PDF view).
+   */
+  color: string;
+}
+
+/**
  * Current page payload.
  *
  * @since 8.0.0
@@ -386,6 +398,13 @@ export interface PdfViewerPlugin {
    * @since 8.0.0
    */
   setBackgroundColor(options: SetBackgroundColorOptions): Promise<void>;
+
+  /**
+   * Read the rendered viewer background while a PDF is open (example app E2E harness).
+   *
+   * @since 8.0.0
+   */
+  getViewerBackgroundColor(): Promise<ViewerBackgroundColorResult>;
 
   /**
    * Read the total page count of the open document.

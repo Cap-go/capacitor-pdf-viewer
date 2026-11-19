@@ -1,7 +1,0 @@
-appId: app.capgo.pdfviewer
----
-- launchApp:
-    clearState: true
-- extendedWaitUntil:
-    visible: 'E2E: auto complete'
-    timeout: 150000

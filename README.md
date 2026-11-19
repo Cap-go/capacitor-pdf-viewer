@@ -271,6 +271,7 @@ See **`example-app/`** (button **Custom UI (toBack)**) for a working demo.
 * [`previousPage()`](#previouspage)
 * [`setZoom(...)`](#setzoom)
 * [`setBackgroundColor(...)`](#setbackgroundcolor)
+* [`getViewerBackgroundColor()`](#getviewerbackgroundcolor)
 * [`getPageCount()`](#getpagecount)
 * [`getCurrentPage()`](#getcurrentpage)
 * [`hide()`](#hide)
@@ -403,6 +404,21 @@ Set the viewer background color while a PDF is open.
 | Param         | Type                                                                            |
 | ------------- | ------------------------------------------------------------------------------- |
 | **`options`** | <code><a href="#setbackgroundcoloroptions">SetBackgroundColorOptions</a></code> |
+
+**Since:** 8.0.0
+
+--------------------
+
+
+### getViewerBackgroundColor()
+
+```typescript
+getViewerBackgroundColor() => Promise<ViewerBackgroundColorResult>
+```
+
+Read the rendered viewer background while a PDF is open (example app E2E harness).
+
+**Returns:** <code>Promise&lt;<a href="#viewerbackgroundcolorresult">ViewerBackgroundColorResult</a>&gt;</code>
 
 **Since:** 8.0.0
 
@@ -701,6 +717,15 @@ Options for {@link PdfViewerPlugin.setBackgroundColor}.
 | Prop        | Type                | Description                                                                |
 | ----------- | ------------------- | -------------------------------------------------------------------------- |
 | **`color`** | <code>string</code> | Hex color (`#RRGGBB` or `#AARRGGBB`) applied around and between PDF pages. |
+
+
+#### ViewerBackgroundColorResult
+
+Result from {@link PdfViewerPlugin.getViewerBackgroundColor}.
+
+| Prop        | Type                | Description                                                         |
+| ----------- | ------------------- | ------------------------------------------------------------------- |
+| **`color`** | <code>string</code> | Active viewer background as `#AARRGGBB` (native canvas / PDF view). |
 
 
 #### PdfPageCountResult

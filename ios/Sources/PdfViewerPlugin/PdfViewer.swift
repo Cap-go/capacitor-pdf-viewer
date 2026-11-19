@@ -74,6 +74,20 @@ import UIKit
         return UIColor(red: red, green: green, blue: blue, alpha: alpha)
     }
 
+    /// Encodes a `UIColor` as plugin-style `#AARRGGBB`.
+    public static func hexString(from color: UIColor) -> String {
+        var red: CGFloat = 0
+        var green: CGFloat = 0
+        var blue: CGFloat = 0
+        var alpha: CGFloat = 0
+        color.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+        let a = Int((alpha * 255).rounded()) & 0xff
+        let r = Int((red * 255).rounded()) & 0xff
+        let g = Int((green * 255).rounded()) & 0xff
+        let b = Int((blue * 255).rounded()) & 0xff
+        return String(format: "#%02x%02x%02x%02x", a, r, g, b)
+    }
+
     public static func loadDocument(
         source: String,
         sourceType: String,

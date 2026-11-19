@@ -47,6 +47,7 @@ const invalidateCustomUiOpen = () => {
 };
 
 const e2eStatus = document.getElementById('e2e-status');
+const e2eNativeBg = document.getElementById('e2e-native-bg');
 
 const setE2eStatus = (text) => {
   if (e2eStatus) {
@@ -54,6 +55,14 @@ const setE2eStatus = (text) => {
   }
   log('e2e', text);
   console.info(`CAPGO_E2E ${text}`);
+};
+
+const setE2eNativeBgLabel = (hex) => {
+  const label = `E2E native bg: ${hex}`;
+  if (e2eNativeBg) {
+    e2eNativeBg.textContent = label;
+  }
+  console.info(`CAPGO_E2E ${label}`);
 };
 
 const log = (label, value) => {
@@ -199,12 +208,35 @@ const openE2eFromSource = async (source, options = {}) => {
   return result;
 };
 
+const normalizeArgbHex = (hex) => hex.trim().toLowerCase();
+
+const expectNativeBackground = async (expectedArgb) => {
+  await new Promise((resolve) => window.setTimeout(resolve, 150));
+  const { color } = await PdfViewer.getViewerBackgroundColor();
+  const got = normalizeArgbHex(color);
+  const want = normalizeArgbHex(expectedArgb);
+  if (got !== want) {
+    throw new Error(`native bg ${got} expected ${want}`);
+  }
+  setE2eNativeBgLabel(got);
+  return got;
+};
+
+const androidDefaultCanvas = '#ff000000';
+
+const defaultCanvasArgb = () => {
+  if (Capacitor.getPlatform() === 'android') {
+    return androidDefaultCanvas;
+  }
+  return null;
+};
+
 const runE2eOpenWithColor = async () => {
   if (!Capacitor.isNativePlatform()) {
     setE2eStatus('E2E: native only');
-    return;
+    return false;
   }
-  setE2eStatus('E2E: running');
+  setE2eStatus('E2E: running open-with-color');
   try {
     cancelAutoOpenCustomUi();
     setCustomUiVisible(false);
@@ -213,41 +245,57 @@ const runE2eOpenWithColor = async () => {
       openE2eFromSource(source, { backgroundColor: '#224466' }),
       'open-with-color',
     );
+    await expectNativeBackground('#ff224466');
+    await PdfViewer.setBackgroundColor({ color: '#335577' });
+    await expectNativeBackground('#ff335577');
     await PdfViewer.close();
+    setE2eStatus('E2E: set-bg-while-open ok');
     setE2eStatus('E2E: open-with-color ok');
+    return true;
   } catch (error) {
     await PdfViewer.close().catch(() => {});
     setE2eStatus(`E2E: failed ${error?.message ?? error}`);
-    log('error', error?.message ?? error);
+    return false;
   }
 };
 
 const runE2eOpenWithoutColor = async () => {
   if (!Capacitor.isNativePlatform()) {
     setE2eStatus('E2E: native only');
-    return;
+    return false;
   }
-  setE2eStatus('E2E: running');
+  setE2eStatus('E2E: running open-without-color');
   try {
     cancelAutoOpenCustomUi();
     setCustomUiVisible(false);
     const source = await bundledSample();
     await withE2eTimeout(openE2eFromSource(source), 'open-without-color');
+    const fallback = defaultCanvasArgb();
+    if (fallback) {
+      await expectNativeBackground(fallback);
+    } else {
+      const { color } = await PdfViewer.getViewerBackgroundColor();
+      setE2eNativeBgLabel(normalizeArgbHex(color));
+      if (normalizeArgbHex(color) === '#ff224466') {
+        throw new Error('default open still shows custom color');
+      }
+    }
     await PdfViewer.close();
     setE2eStatus('E2E: open-without-color ok');
+    return true;
   } catch (error) {
     await PdfViewer.close().catch(() => {});
     setE2eStatus(`E2E: failed ${error?.message ?? error}`);
-    log('error', error?.message ?? error);
+    return false;
   }
 };
 
 const runE2eInvalidColors = async () => {
   if (!Capacitor.isNativePlatform()) {
     setE2eStatus('E2E: native only');
-    return;
+    return false;
   }
-  setE2eStatus('E2E: running');
+  setE2eStatus('E2E: running invalid-colors');
   try {
     cancelAutoOpenCustomUi();
     setCustomUiVisible(false);
@@ -256,6 +304,10 @@ const runE2eInvalidColors = async () => {
       openE2eFromSource(source, { backgroundColor: 'not-a-color' }),
       'invalid-color-open',
     );
+    const fallback = defaultCanvasArgb() ?? null;
+    if (fallback) {
+      await expectNativeBackground(fallback);
+    }
     let rejected = false;
     try {
       await PdfViewer.setBackgroundColor({ color: 'bad' });
@@ -265,22 +317,55 @@ const runE2eInvalidColors = async () => {
     await PdfViewer.close();
     if (!rejected) {
       setE2eStatus('E2E: invalid setBackgroundColor not rejected');
-      return;
+      return false;
     }
     setE2eStatus('E2E: invalid-color ok');
+    return true;
   } catch (error) {
     await PdfViewer.close().catch(() => {});
     setE2eStatus(`E2E: failed ${error?.message ?? error}`);
-    log('error', error?.message ?? error);
+    return false;
+  }
+};
+
+const runE2eRelaunchDefault = async () => {
+  if (!Capacitor.isNativePlatform()) {
+    setE2eStatus('E2E: native only');
+    return false;
+  }
+  setE2eStatus('E2E: running relaunch-default');
+  try {
+    cancelAutoOpenCustomUi();
+    setCustomUiVisible(false);
+    const source = await bundledSample();
+    await withE2eTimeout(openE2eFromSource(source), 'relaunch-default');
+    const fallback = defaultCanvasArgb();
+    if (fallback) {
+      await expectNativeBackground(fallback);
+    } else {
+      const { color } = await PdfViewer.getViewerBackgroundColor();
+      setE2eNativeBgLabel(normalizeArgbHex(color));
+    }
+    await PdfViewer.close();
+    setE2eStatus('E2E: relaunch default ok');
+    return true;
+  } catch (error) {
+    await PdfViewer.close().catch(() => {});
+    setE2eStatus(`E2E: failed ${error?.message ?? error}`);
+    return false;
   }
 };
 
 const runMaestroAutoE2e = async () => {
   setE2eStatus('E2E: auto start');
-  await runE2eOpenWithColor();
-  await runE2eOpenWithoutColor();
-  await runE2eInvalidColors();
-  setE2eStatus('E2E: auto complete');
+  const steps = [runE2eOpenWithColor, runE2eOpenWithoutColor, runE2eInvalidColors];
+  for (const step of steps) {
+    const ok = await step();
+    if (!ok) {
+      return;
+    }
+  }
+  setE2eStatus('E2E: auto pass complete');
 };
 
 document.getElementById('e2e-open-with-color')?.addEventListener('click', () => {
@@ -293,6 +378,10 @@ document.getElementById('e2e-open-without-color')?.addEventListener('click', () 
 
 document.getElementById('e2e-invalid-colors')?.addEventListener('click', () => {
   void runE2eInvalidColors();
+});
+
+document.getElementById('e2e-relaunch-default')?.addEventListener('click', () => {
+  void runE2eRelaunchDefault();
 });
 
 document.getElementById('open-fullscreen').addEventListener('click', async () => {

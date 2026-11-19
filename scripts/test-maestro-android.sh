@@ -23,7 +23,7 @@ if ! command -v adb >/dev/null 2>&1; then
   exit 1
 fi
 
-USE_LOGCAT_E2E="${CAPGO_MAESTRO_ANDROID_LOGCAT:-1}"
+USE_LOGCAT_E2E="${CAPGO_MAESTRO_ANDROID_LOGCAT:-0}"
 
 if [[ "$USE_LOGCAT_E2E" != "1" ]] && ! command -v maestro >/dev/null 2>&1; then
   echo "maestro is required to run Android Maestro tests." >&2
@@ -53,51 +53,6 @@ wait_for_device() {
 
   echo "Android device $DEVICE_ID did not finish booting within ${timeout_seconds} seconds." >&2
   exit 1
-}
-
-wait_for_logcat_line() {
-  local pattern="$1"
-  local log_file="$2"
-  local timeout_seconds="${3:-120}"
-  local deadline=$((SECONDS + timeout_seconds))
-
-  while ((SECONDS < deadline)); do
-    if [[ -f "$log_file" ]] && grep -Fq "$pattern" "$log_file"; then
-      echo "Saw logcat: $pattern"
-      return 0
-    fi
-  done
-
-  echo "Timed out waiting for logcat: $pattern" >&2
-  adb -s "$DEVICE_ID" logcat -d -v brief 2>/dev/null | grep -F 'CAPGO_E2E' | tail -40 >&2 || true
-  tail -120 "$log_file" >&2 2>/dev/null || true
-  return 1
-}
-
-run_logcat_background_color_e2e() {
-  local main_activity="${CAPGO_MAESTRO_ANDROID_MAIN_ACTIVITY:-.MainActivity}"
-  local log_file="$RESULTS_DIR/logcat.txt"
-
-  adb -s "$DEVICE_ID" logcat -c >/dev/null 2>&1 || true
-  : >"$log_file"
-  adb -s "$DEVICE_ID" logcat -v brief Capacitor/Console:V Capacitor:V *:S >>"$log_file" 2>/dev/null &
-  local logcat_pid=$!
-
-  adb -s "$DEVICE_ID" shell pm clear "$APP_ID" >/dev/null 2>&1 || true
-  adb -s "$DEVICE_ID" shell am start -n "${APP_ID}/${main_activity}" -a android.intent.action.MAIN -c android.intent.category.LAUNCHER
-
-  wait_for_logcat_line 'CAPGO_E2E E2E: auto start' "$log_file" 240
-  wait_for_logcat_line 'CAPGO_E2E E2E: open-with-color ok' "$log_file" 90
-  wait_for_logcat_line 'CAPGO_E2E E2E: open-without-color ok' "$log_file" 90
-  wait_for_logcat_line 'CAPGO_E2E E2E: invalid-color ok' "$log_file" 90
-  wait_for_logcat_line 'CAPGO_E2E E2E: auto complete' "$log_file" 90
-
-  kill "$logcat_pid" >/dev/null 2>&1 || true
-
-  cat >"$RESULTS_DIR/junit.xml" <<'EOF'
-<?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="background-color-logcat" tests="3" failures="0" />
-EOF
 }
 
 if [[ "$SKIP_BUILD" != "1" ]]; then
@@ -137,8 +92,8 @@ rm -rf "$RESULTS_DIR"
 mkdir -p "$RESULTS_DIR"
 
 if [[ "$USE_LOGCAT_E2E" == "1" ]]; then
-  run_logcat_background_color_e2e
-  exit 0
+  echo "CAPGO_MAESTRO_ANDROID_LOGCAT=1 is deprecated; use Maestro flows." >&2
+  exit 1
 fi
 
 ANDROID_SERIAL="$DEVICE_ID" MAESTRO_CLI_NO_ANALYTICS=1 maestro test \
@@ -147,3 +102,6 @@ ANDROID_SERIAL="$DEVICE_ID" MAESTRO_CLI_NO_ANALYTICS=1 maestro test \
   --flatten-debug-output \
   --format junit \
   --output "$RESULTS_DIR/junit.xml"
+
+export CAPGO_MAESTRO_PLATFORM=android
+bash "$ROOT_DIR/scripts/maestro/post-maestro-checks.sh" "$RESULTS_DIR"

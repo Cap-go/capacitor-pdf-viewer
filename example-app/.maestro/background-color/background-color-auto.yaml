@@ -1,0 +1,26 @@
+appId: app.capgo.pdfviewer
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: 'E2E: auto start'
+    timeout: 120000
+- extendedWaitUntil:
+    visible: 'E2E: set-bg-while-open ok'
+    timeout: 150000
+- assertVisible: 'E2E native bg: #ff335577'
+- takeScreenshot: e2e-custom-bg-open
+- extendedWaitUntil:
+    visible: 'E2E: open-with-color ok'
+    timeout: 30000
+- extendedWaitUntil:
+    visible: 'E2E: open-without-color ok'
+    timeout: 90000
+- takeScreenshot: e2e-default-bg-open
+- extendedWaitUntil:
+    visible: 'E2E: invalid-color ok'
+    timeout: 90000
+- extendedWaitUntil:
+    visible: 'E2E: auto pass complete'
+    timeout: 30000
+- assertNotVisible: 'E2E: failed'

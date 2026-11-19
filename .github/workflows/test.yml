@@ -199,9 +199,11 @@ jobs:
         timeout-minutes: 5
         env:
           CAPGO_MAESTRO_SKIP_BUILD: "1"
+          CAPGO_MAESTRO_ANDROID_LOGCAT: "0"
           CAPGO_MAESTRO_EMULATOR_BOOT_TIMEOUT_SECONDS: "180"
+          CAPGO_MAESTRO_PIXEL_NEGATIVE: "1"
           MAESTRO_DRIVER_STARTUP_TIMEOUT: "120000"
-        uses: reactivecircus/android-emulator-runner@v2
+        uses: reactivecircus/android-emulator-runner@v2.34.0
         with:
           api-level: 30
           arch: x86_64
@@ -216,6 +218,12 @@ jobs:
         with:
           name: maestro-results-android-background-color
           path: maestro-results
+      - name: Upload Maestro PR screenshots
+        if: success()
+        uses: actions/upload-artifact@v7
+        with:
+          name: maestro-screenshots-android
+          path: docs/screenshots/bg-color-*-android.png
 
   maestro_ios_background_color:
     needs: build_ios
@@ -251,6 +259,7 @@ jobs:
         timeout-minutes: 5
         env:
           CAPGO_MAESTRO_IOS_SKIP_BOOT: "1"
+          CAPGO_MAESTRO_PIXEL_NEGATIVE: "1"
           MAESTRO_DRIVER_STARTUP_TIMEOUT: 90000
         run: |
           set -euo pipefail
@@ -263,3 +272,9 @@ jobs:
         with:
           name: maestro-results-ios-background-color
           path: maestro-results-ios
+      - name: Upload Maestro PR screenshots
+        if: success()
+        uses: actions/upload-artifact@v7
+        with:
+          name: maestro-screenshots-ios
+          path: docs/screenshots/bg-color-*-ios.png

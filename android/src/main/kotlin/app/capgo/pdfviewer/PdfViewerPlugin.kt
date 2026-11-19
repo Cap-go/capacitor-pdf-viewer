@@ -171,6 +171,19 @@ class PdfViewerPlugin : Plugin() {
     }
 
     @PluginMethod
+    fun getViewerBackgroundColor(call: PluginCall) {
+        val activeViewer = viewer
+        if (activeViewer == null) {
+            call.reject("No PDF is open")
+            return
+        }
+        bridge.activity.runOnUiThread {
+            val color = activeViewer.canvasBackgroundColor()
+            call.resolve(JSObject().put("color", PdfViewerHelpers.formatArgbHex(color)))
+        }
+    }
+
+    @PluginMethod
     fun setBackgroundColor(call: PluginCall) {
         val colorHex = call.getString("color")
         val parsed = PdfViewerHelpers.parseArgbHex(colorHex)

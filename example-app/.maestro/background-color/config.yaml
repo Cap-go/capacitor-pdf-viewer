@@ -1,2 +1,3 @@
 flows:
-  - auto-background-color.yaml
+  - background-color-auto.yaml
+  - background-color-relaunch.yaml
