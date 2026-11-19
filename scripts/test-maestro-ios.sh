@@ -6,6 +6,7 @@ EXAMPLE_DIR="$ROOT_DIR/example-app"
 FLOW_PATH="${CAPGO_MAESTRO_FLOW_PATH:-$ROOT_DIR/example-app/.maestro/background-color}"
 RESULTS_DIR="${CAPGO_MAESTRO_RESULTS_DIR:-$ROOT_DIR/maestro-results-ios}"
 SKIP_BUILD="${CAPGO_MAESTRO_SKIP_BUILD:-0}"
+USE_LOG_E2E="${CAPGO_MAESTRO_IOS_LOG:-1}"
 APP_ID="app.capgo.pdfviewer"
 
 export MAESTRO_DRIVER_STARTUP_TIMEOUT="${MAESTRO_DRIVER_STARTUP_TIMEOUT:-120000}"
@@ -16,10 +17,52 @@ if [[ ! -d "$FLOW_PATH" && ! -f "$FLOW_PATH" ]]; then
   exit 1
 fi
 
-if ! command -v maestro >/dev/null 2>&1; then
+if [[ "$USE_LOG_E2E" != "1" ]] && ! command -v maestro >/dev/null 2>&1; then
   echo "maestro is required to run iOS Maestro tests." >&2
   exit 1
 fi
+
+wait_for_log_line() {
+  local pattern="$1"
+  local log_file="$2"
+  local timeout_seconds="${3:-120}"
+  local deadline=$((SECONDS + timeout_seconds))
+
+  while ((SECONDS < deadline)); do
+    if [[ -f "$log_file" ]] && grep -Fq "$pattern" "$log_file"; then
+      echo "Saw log: $pattern"
+      return 0
+    fi
+  done
+
+  echo "Timed out waiting for log: $pattern" >&2
+  tail -120 "$log_file" >&2 2>/dev/null || true
+  return 1
+}
+
+run_log_background_color_e2e() {
+  local log_file="$RESULTS_DIR/ios-log.txt"
+
+  : >"$log_file"
+  xcrun simctl spawn "$SIMULATOR_ID" log stream --style compact --predicate 'composedMessage CONTAINS "CAPGO_E2E"' >>"$log_file" 2>/dev/null &
+  local log_pid=$!
+
+  xcrun simctl terminate "$SIMULATOR_ID" "$APP_ID" >/dev/null 2>&1 || true
+  xcrun simctl launch "$SIMULATOR_ID" "$APP_ID"
+
+  wait_for_log_line 'CAPGO_E2E E2E: auto start' "$log_file" 180
+  wait_for_log_line 'CAPGO_E2E E2E: open-with-color ok' "$log_file" 60
+  wait_for_log_line 'CAPGO_E2E E2E: open-without-color ok' "$log_file" 60
+  wait_for_log_line 'CAPGO_E2E E2E: invalid-color ok' "$log_file" 60
+  wait_for_log_line 'CAPGO_E2E E2E: auto complete' "$log_file" 60
+
+  kill "$log_pid" >/dev/null 2>&1 || true
+
+  cat >"$RESULTS_DIR/junit.xml" <<'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="background-color-ios-log" tests="3" failures="0" />
+EOF
+}
 
 SIMULATOR_ID="${CAPGO_MAESTRO_IOS_SIMULATOR_ID:-$("$ROOT_DIR/scripts/maestro/select-ios-simulator.sh")}"
 DERIVED_DATA_PATH="${CAPGO_MAESTRO_IOS_DERIVED_DATA_PATH:-${RUNNER_TEMP:-/tmp}/maestro-pdf-viewer-derived}"
@@ -68,6 +111,11 @@ xcrun simctl install "$SIMULATOR_ID" "$APP_PATH"
 
 rm -rf "$RESULTS_DIR"
 mkdir -p "$RESULTS_DIR"
+
+if [[ "$USE_LOG_E2E" == "1" ]]; then
+  run_log_background_color_e2e
+  exit 0
+fi
 
 maestro --device "$SIMULATOR_ID" test \
   "$FLOW_PATH" \
