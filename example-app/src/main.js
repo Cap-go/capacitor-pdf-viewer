@@ -52,6 +52,7 @@ const setE2eStatus = (text) => {
   if (e2eStatus) {
     e2eStatus.textContent = text;
   }
+  log('e2e', text);
 };
 
 const log = (label, value) => {
@@ -171,6 +172,16 @@ const openFullscreenFromSource = async (source, options = {}) => {
   return result;
 };
 
+const withE2eTimeout = (promise, label) => {
+  const ms = 20_000;
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      window.setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
+    }),
+  ]);
+};
+
 const openE2eFromSource = async (source, options = {}) => {
   const result = await PdfViewer.open({
     source,
@@ -197,7 +208,10 @@ document.getElementById('e2e-open-with-color')?.addEventListener('click', async 
     cancelAutoOpenCustomUi();
     setCustomUiVisible(false);
     const source = await bundledSample();
-    await openE2eFromSource(source, { backgroundColor: '#224466' });
+    await withE2eTimeout(
+      openE2eFromSource(source, { backgroundColor: '#224466' }),
+      'open-with-color',
+    );
     await PdfViewer.close();
     setE2eStatus('E2E: open-with-color ok');
   } catch (error) {
@@ -217,7 +231,7 @@ document.getElementById('e2e-open-without-color')?.addEventListener('click', asy
     cancelAutoOpenCustomUi();
     setCustomUiVisible(false);
     const source = await bundledSample();
-    await openE2eFromSource(source);
+    await withE2eTimeout(openE2eFromSource(source), 'open-without-color');
     await PdfViewer.close();
     setE2eStatus('E2E: open-without-color ok');
   } catch (error) {
@@ -237,7 +251,10 @@ document.getElementById('e2e-invalid-colors')?.addEventListener('click', async (
     cancelAutoOpenCustomUi();
     setCustomUiVisible(false);
     const source = await bundledSample();
-    await openE2eFromSource(source, { backgroundColor: 'not-a-color' });
+    await withE2eTimeout(
+      openE2eFromSource(source, { backgroundColor: 'not-a-color' }),
+      'invalid-color-open',
+    );
     let rejected = false;
     try {
       await PdfViewer.setBackgroundColor({ color: 'bad' });

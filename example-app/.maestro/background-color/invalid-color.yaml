@@ -12,5 +12,5 @@ androidWebViewHierarchy: devtools
     timeout: 30000
 - tapOn: 'E2E invalid colors'
 - extendedWaitUntil:
-    visible: 'E2E: invalid-color ok'
+    visible: 'e2e: E2E: invalid-color ok'
     timeout: 45000
