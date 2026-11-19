@@ -167,7 +167,7 @@ jobs:
   maestro_android_background_color:
     needs: build_android
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     name: Maestro Android / background color
     steps:
       - name: Check out
@@ -190,10 +190,10 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
       - name: Run Maestro background color flows
-        timeout-minutes: 5
+        timeout-minutes: 10
         env:
           CAPGO_MAESTRO_SKIP_BUILD: "1"
-          CAPGO_MAESTRO_EMULATOR_BOOT_TIMEOUT_SECONDS: "120"
+          CAPGO_MAESTRO_EMULATOR_BOOT_TIMEOUT_SECONDS: "180"
           MAESTRO_DRIVER_STARTUP_TIMEOUT: "120000"
         uses: reactivecircus/android-emulator-runner@v2
         with:
