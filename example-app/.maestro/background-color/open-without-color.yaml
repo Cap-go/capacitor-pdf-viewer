@@ -1,10 +1,15 @@
 appId: app.capgo.pdfviewer
+androidWebViewHierarchy: devtools
 ---
 - launchApp:
     clearState: true
 - extendedWaitUntil:
     visible: 'PDF Viewer'
     timeout: 45000
+- scrollUntilVisible:
+    element: 'E2E open without bg'
+    direction: DOWN
+    timeout: 30000
 - tapOn: 'E2E open without bg'
 - extendedWaitUntil:
     visible: 'E2E: open-without-color ok'
