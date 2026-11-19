@@ -241,6 +241,8 @@ jobs:
           SIMULATOR_ID="$(scripts/maestro/select-ios-simulator.sh)"
           echo "CAPGO_MAESTRO_IOS_SIMULATOR_ID=$SIMULATOR_ID" >> "$GITHUB_ENV"
           echo "CAPGO_MAESTRO_IOS_APP_PATH=$PWD/maestro-ios-app/App.app" >> "$GITHUB_ENV"
+          xcrun simctl boot "$SIMULATOR_ID" >/dev/null 2>&1 || true
+          xcrun simctl bootstatus "$SIMULATOR_ID" -b
       - name: Setup Maestro
         uses: ./.github/actions/setup-maestro
         with:
@@ -248,8 +250,8 @@ jobs:
       - name: Run Maestro background color flows
         timeout-minutes: 5
         env:
-          CAPGO_MAESTRO_IOS_LOG: "1"
-          MAESTRO_DRIVER_STARTUP_TIMEOUT: 120000
+          CAPGO_MAESTRO_IOS_SKIP_BOOT: "1"
+          MAESTRO_DRIVER_STARTUP_TIMEOUT: 90000
         run: |
           set -euo pipefail
           export PATH="$HOME/.bun/bin:$PATH"

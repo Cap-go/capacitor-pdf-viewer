@@ -6,7 +6,7 @@ EXAMPLE_DIR="$ROOT_DIR/example-app"
 FLOW_PATH="${CAPGO_MAESTRO_FLOW_PATH:-$ROOT_DIR/example-app/.maestro/background-color}"
 RESULTS_DIR="${CAPGO_MAESTRO_RESULTS_DIR:-$ROOT_DIR/maestro-results-ios}"
 SKIP_BUILD="${CAPGO_MAESTRO_SKIP_BUILD:-0}"
-USE_LOG_E2E="${CAPGO_MAESTRO_IOS_LOG:-1}"
+USE_LOG_E2E="${CAPGO_MAESTRO_IOS_LOG:-0}"
 APP_ID="app.capgo.pdfviewer"
 
 export MAESTRO_DRIVER_STARTUP_TIMEOUT="${MAESTRO_DRIVER_STARTUP_TIMEOUT:-120000}"
@@ -44,7 +44,7 @@ run_log_background_color_e2e() {
   local log_file="$RESULTS_DIR/ios-log.txt"
 
   : >"$log_file"
-  xcrun simctl spawn "$SIMULATOR_ID" log stream --style compact --predicate 'composedMessage CONTAINS "CAPGO_E2E"' >>"$log_file" 2>/dev/null &
+  xcrun simctl spawn "$SIMULATOR_ID" log stream --style compact >>"$log_file" 2>/dev/null &
   local log_pid=$!
 
   xcrun simctl terminate "$SIMULATOR_ID" "$APP_ID" >/dev/null 2>&1 || true
@@ -104,8 +104,10 @@ if [[ ! -d "$APP_PATH" ]]; then
   exit 1
 fi
 
-xcrun simctl boot "$SIMULATOR_ID" >/dev/null 2>&1 || true
-xcrun simctl bootstatus "$SIMULATOR_ID" -b
+if [[ "${CAPGO_MAESTRO_IOS_SKIP_BOOT:-0}" != "1" ]]; then
+  xcrun simctl boot "$SIMULATOR_ID" >/dev/null 2>&1 || true
+  xcrun simctl bootstatus "$SIMULATOR_ID" -b
+fi
 xcrun simctl uninstall "$SIMULATOR_ID" "$APP_ID" >/dev/null 2>&1 || true
 xcrun simctl install "$SIMULATOR_ID" "$APP_PATH"
 
