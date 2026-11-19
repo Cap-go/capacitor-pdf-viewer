@@ -49,12 +49,24 @@ const invalidateCustomUiOpen = () => {
 const e2eStatus = document.getElementById('e2e-status');
 const e2eNativeBg = document.getElementById('e2e-native-bg');
 
+const mirrorE2eHarness = async (text) => {
+  if (!Capacitor.isNativePlatform()) {
+    return;
+  }
+  try {
+    await PdfViewer.setE2eHarnessLabel({ text });
+  } catch (error) {
+    console.warn('setE2eHarnessLabel failed', error);
+  }
+};
+
 const setE2eStatus = (text) => {
   if (e2eStatus) {
     e2eStatus.textContent = text;
   }
   log('e2e', text);
   console.info(`CAPGO_E2E ${text}`);
+  void mirrorE2eHarness(text);
 };
 
 const setE2eNativeBgLabel = (hex) => {
@@ -63,6 +75,7 @@ const setE2eNativeBgLabel = (hex) => {
     e2eNativeBg.textContent = label;
   }
   console.info(`CAPGO_E2E ${label}`);
+  void mirrorE2eHarness(label);
 };
 
 const log = (label, value) => {
@@ -249,7 +262,7 @@ const runE2eOpenWithColor = async () => {
     await PdfViewer.setBackgroundColor({ color: '#335577' });
     await expectNativeBackground('#ff335577');
     await PdfViewer.close();
-    setE2eStatus('E2E: set-bg-while-open ok');
+    setE2eStatus('E2E: set-bg-while-open ok #ff335577');
     setE2eStatus('E2E: open-with-color ok');
     return true;
   } catch (error) {
@@ -576,6 +589,10 @@ document.getElementById('custom-close').addEventListener('click', async () => {
     setCustomCloseEnabled(true);
   }
 });
+
+if (Capacitor.isNativePlatform()) {
+  void mirrorE2eHarness('E2E: idle');
+}
 
 if (import.meta.env.VITE_MAESTRO_AUTO_E2E === '1' && Capacitor.isNativePlatform()) {
   console.info('CAPGO_E2E E2E: js module ready');

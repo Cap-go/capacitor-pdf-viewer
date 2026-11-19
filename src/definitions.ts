@@ -219,6 +219,18 @@ export interface ViewerBackgroundColorResult {
 }
 
 /**
+ * Options for {@link PdfViewerPlugin.setE2eHarnessLabel} (example app Maestro harness).
+ *
+ * @since 8.0.0
+ */
+export interface SetE2eHarnessLabelOptions {
+  /**
+   * Label mirrored to a native on-screen view for Maestro `assertVisible`.
+   */
+  text: string;
+}
+
+/**
  * Current page payload.
  *
  * @since 8.0.0
@@ -405,6 +417,13 @@ export interface PdfViewerPlugin {
    * @since 8.0.0
    */
   getViewerBackgroundColor(): Promise<ViewerBackgroundColorResult>;
+
+  /**
+   * Mirror E2E status text to a native on-screen label (example app Maestro harness).
+   *
+   * @since 8.0.0
+   */
+  setE2eHarnessLabel(options: SetE2eHarnessLabelOptions): Promise<void>;
 
   /**
    * Read the total page count of the open document.

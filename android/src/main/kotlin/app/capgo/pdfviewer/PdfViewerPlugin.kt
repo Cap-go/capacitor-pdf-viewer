@@ -3,8 +3,11 @@ package app.capgo.pdfviewer
 import android.graphics.Color
 import android.view.View
 import android.view.ViewGroup
+import android.graphics.Typeface
+import android.view.Gravity
 import android.widget.FrameLayout
 import android.widget.ImageButton
+import android.widget.TextView
 import com.getcapacitor.JSObject
 import com.getcapacitor.Plugin
 import com.getcapacitor.PluginCall
@@ -29,6 +32,7 @@ class PdfViewerPlugin : Plugin() {
     private var webViewVisualState: PdfToBackCompositor.SavedState? = null
     private var touchRouter: PdfUnderWebViewTouchRouter? = null
     private var underWebViewLayoutListener: View.OnLayoutChangeListener? = null
+    private var e2eHarnessLabel: TextView? = null
 
     override fun load() {
         implementation = PdfViewer(context)
@@ -168,6 +172,41 @@ class PdfViewerPlugin : Plugin() {
             active.setZoom(scale)
             call.resolve()
         }
+    }
+
+    @PluginMethod
+    fun setE2eHarnessLabel(call: PluginCall) {
+        val text = call.getString("text") ?: ""
+        bridge.activity.runOnUiThread {
+            val label = ensureE2eHarnessLabel()
+            label.text = text
+            label.contentDescription = text
+            call.resolve()
+        }
+    }
+
+    private fun ensureE2eHarnessLabel(): TextView {
+        e2eHarnessLabel?.let { return it }
+        val activity = bridge.activity
+        val label =
+            TextView(activity).apply {
+                setTextColor(Color.WHITE)
+                textSize = 12f
+                setTypeface(typeface, Typeface.BOLD)
+                setBackgroundColor(0xEB00162A.toInt())
+                setPadding(24, 16, 24, 16)
+                isClickable = false
+                importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES
+            }
+        val decor = activity.window.decorView as ViewGroup
+        val params =
+            FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply { gravity = Gravity.TOP }
+        decor.addView(label, params)
+        e2eHarnessLabel = label
+        return label
     }
 
     @PluginMethod

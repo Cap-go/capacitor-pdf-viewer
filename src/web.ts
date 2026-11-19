@@ -11,6 +11,7 @@ import type {
   PdfViewerPlugin,
   PluginVersionResult,
   SetBackgroundColorOptions,
+  SetE2eHarnessLabelOptions,
   SetZoomOptions,
   ViewerBackgroundColorResult,
 } from './definitions';
@@ -227,6 +228,10 @@ export class PdfViewerWeb extends WebPlugin implements PdfViewerPlugin {
       return { color: `#ff${hex}` };
     }
     return { color: '#00000000' };
+  }
+
+  async setE2eHarnessLabel(_options: SetE2eHarnessLabelOptions): Promise<void> {
+    void _options;
   }
 
   async getPageCount(): Promise<PdfPageCountResult> {

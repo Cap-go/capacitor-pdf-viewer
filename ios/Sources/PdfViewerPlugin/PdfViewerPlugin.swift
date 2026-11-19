@@ -16,6 +16,7 @@ public class PdfViewerPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "setZoom", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setBackgroundColor", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getViewerBackgroundColor", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "setE2eHarnessLabel", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getPageCount", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getCurrentPage", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "hide", returnType: CAPPluginReturnPromise),
@@ -176,6 +177,45 @@ public class PdfViewerPlugin: CAPPlugin, CAPBridgedPlugin {
             }
             session.getViewerBackgroundColor(call: call)
         }
+    }
+
+    private var e2eHarnessLabel: UILabel?
+
+    @objc func setE2eHarnessLabel(_ call: CAPPluginCall) {
+        let text = call.getString("text") ?? ""
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            let label = self.ensureE2eHarnessLabel()
+            label.text = text
+            label.accessibilityLabel = text
+            call.resolve()
+        }
+    }
+
+    private func ensureE2eHarnessLabel() -> UILabel {
+        if let e2eHarnessLabel {
+            return e2eHarnessLabel
+        }
+        let label = UILabel()
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.font = UIFont.monospacedSystemFont(ofSize: 12, weight: .semibold)
+        label.textColor = UIColor(red: 0.89, green: 0.95, blue: 1, alpha: 1)
+        label.backgroundColor = UIColor(red: 0, green: 0.09, blue: 0.16, alpha: 0.92)
+        label.numberOfLines = 2
+        label.isAccessibilityElement = true
+        guard let window = bridge?.viewController?.view.window else {
+            let standalone = UILabel()
+            e2eHarnessLabel = standalone
+            return standalone
+        }
+        window.addSubview(label)
+        NSLayoutConstraint.activate([
+            label.topAnchor.constraint(equalTo: window.safeAreaLayoutGuide.topAnchor),
+            label.leadingAnchor.constraint(equalTo: window.leadingAnchor),
+            label.trailingAnchor.constraint(equalTo: window.trailingAnchor),
+        ])
+        e2eHarnessLabel = label
+        return label
     }
 
     @objc func getPageCount(_ call: CAPPluginCall) {
