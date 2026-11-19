@@ -198,13 +198,7 @@ jobs:
           profile: pixel_7
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -no-metrics
-          script: |
-            set -euo pipefail
-            export CAPGO_MAESTRO_SKIP_BUILD=1
-            export CAPGO_MAESTRO_EMULATOR_BOOT_TIMEOUT_SECONDS=120
-            export MAESTRO_DRIVER_STARTUP_TIMEOUT=120000
-            export PATH="$HOME/.bun/bin:$PATH"
-            ./scripts/test-maestro-android.sh
+          script: CAPGO_MAESTRO_SKIP_BUILD=1 CAPGO_MAESTRO_EMULATOR_BOOT_TIMEOUT_SECONDS=120 MAESTRO_DRIVER_STARTUP_TIMEOUT=120000 ./scripts/test-maestro-android.sh
       - name: Upload Maestro artifacts
         if: always()
         uses: actions/upload-artifact@v7

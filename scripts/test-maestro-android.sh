@@ -9,6 +9,10 @@ FLOW_PATH="${CAPGO_MAESTRO_FLOW_PATH:-$ROOT_DIR/example-app/.maestro/background-
 APP_ID="app.capgo.pdfviewer"
 SKIP_BUILD="${CAPGO_MAESTRO_SKIP_BUILD:-0}"
 
+if [[ -f "$APK_PATH" ]]; then
+  SKIP_BUILD=1
+fi
+
 if [[ ! -d "$FLOW_PATH" && ! -f "$FLOW_PATH" ]]; then
   echo "Maestro flow path not found: $FLOW_PATH" >&2
   exit 1
