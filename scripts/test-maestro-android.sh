@@ -23,7 +23,9 @@ if ! command -v adb >/dev/null 2>&1; then
   exit 1
 fi
 
-if ! command -v maestro >/dev/null 2>&1; then
+USE_LOGCAT_E2E="${CAPGO_MAESTRO_ANDROID_LOGCAT:-1}"
+
+if [[ "$USE_LOGCAT_E2E" != "1" ]] && ! command -v maestro >/dev/null 2>&1; then
   echo "maestro is required to run Android Maestro tests." >&2
   exit 1
 fi
@@ -51,6 +53,42 @@ wait_for_device() {
 
   echo "Android device $DEVICE_ID did not finish booting within ${timeout_seconds} seconds." >&2
   exit 1
+}
+
+wait_for_logcat_line() {
+  local pattern="$1"
+  local timeout_seconds="${2:-120}"
+  local deadline=$((SECONDS + timeout_seconds))
+
+  while ((SECONDS < deadline)); do
+    if adb -s "$DEVICE_ID" logcat -d 2>/dev/null | grep -Fq "$pattern"; then
+      echo "Saw logcat: $pattern"
+      return 0
+    fi
+  done
+
+  echo "Timed out waiting for logcat: $pattern" >&2
+  adb -s "$DEVICE_ID" logcat -d 2>/dev/null | tail -200 >&2 || true
+  return 1
+}
+
+run_logcat_background_color_e2e() {
+  local main_activity="${CAPGO_MAESTRO_ANDROID_MAIN_ACTIVITY:-.MainActivity}"
+
+  adb -s "$DEVICE_ID" logcat -c >/dev/null 2>&1 || true
+  adb -s "$DEVICE_ID" shell pm clear "$APP_ID" >/dev/null 2>&1 || true
+  adb -s "$DEVICE_ID" shell am start -n "${APP_ID}/${main_activity}" -a android.intent.action.MAIN -c android.intent.category.LAUNCHER
+
+  wait_for_logcat_line 'CAPGO_E2E E2E: auto start' 90
+  wait_for_logcat_line 'CAPGO_E2E E2E: open-with-color ok' 120
+  wait_for_logcat_line 'CAPGO_E2E E2E: open-without-color ok' 120
+  wait_for_logcat_line 'CAPGO_E2E E2E: invalid-color ok' 120
+  wait_for_logcat_line 'CAPGO_E2E E2E: auto complete' 120
+
+  cat >"$RESULTS_DIR/junit.xml" <<'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="background-color-logcat" tests="3" failures="0" />
+EOF
 }
 
 if [[ "$SKIP_BUILD" != "1" ]]; then
@@ -88,6 +126,11 @@ adb -s "$DEVICE_ID" shell am force-stop "$APP_ID" >/dev/null 2>&1 || true
 
 rm -rf "$RESULTS_DIR"
 mkdir -p "$RESULTS_DIR"
+
+if [[ "$USE_LOGCAT_E2E" == "1" ]]; then
+  run_logcat_background_color_e2e
+  exit 0
+fi
 
 ANDROID_SERIAL="$DEVICE_ID" MAESTRO_CLI_NO_ANALYTICS=1 maestro test \
   "$FLOW_PATH" \

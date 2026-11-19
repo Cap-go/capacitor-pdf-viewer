@@ -53,6 +53,7 @@ const setE2eStatus = (text) => {
     e2eStatus.textContent = text;
   }
   log('e2e', text);
+  console.info(`CAPGO_E2E ${text}`);
 };
 
 const log = (label, value) => {
