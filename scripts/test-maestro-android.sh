@@ -58,17 +58,18 @@ wait_for_device() {
 wait_for_logcat_line() {
   local pattern="$1"
   local timeout_seconds="${2:-120}"
-  local deadline=$((SECONDS + timeout_seconds))
 
-  while ((SECONDS < deadline)); do
-    if adb -s "$DEVICE_ID" logcat -d 2>/dev/null | grep -Fq "$pattern"; then
-      echo "Saw logcat: $pattern"
-      return 0
-    fi
-  done
+  if timeout "${timeout_seconds}s" adb -s "$DEVICE_ID" logcat -v brief \
+    chromium:V \
+    Capacitor/Console:V \
+    Capacitor:V \
+  *:S 2>/dev/null | grep -m1 -F --line-buffered "$pattern" >/dev/null; then
+    echo "Saw logcat: $pattern"
+    return 0
+  fi
 
   echo "Timed out waiting for logcat: $pattern" >&2
-  adb -s "$DEVICE_ID" logcat -d 2>/dev/null | tail -200 >&2 || true
+  adb -s "$DEVICE_ID" logcat -d -v brief chromium:V Capacitor/Console:V Capacitor:V *:S 2>/dev/null | tail -120 >&2 || true
   return 1
 }
 
