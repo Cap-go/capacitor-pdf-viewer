@@ -22,7 +22,15 @@ if ! command -v maestro >/dev/null 2>&1; then
 fi
 
 SIMULATOR_ID="${CAPGO_MAESTRO_IOS_SIMULATOR_ID:-$("$ROOT_DIR/scripts/maestro/select-ios-simulator.sh")}"
-DERIVED_DATA_PATH="${CAPGO_MAESTRO_IOS_DERIVED_DATA_PATH:-$RUNNER_TEMP/maestro-pdf-viewer-derived}"
+DERIVED_DATA_PATH="${CAPGO_MAESTRO_IOS_DERIVED_DATA_PATH:-${RUNNER_TEMP:-/tmp}/maestro-pdf-viewer-derived}"
+
+if [[ -n "${CAPGO_MAESTRO_IOS_APP_PATH:-}" ]]; then
+  APP_PATH="$CAPGO_MAESTRO_IOS_APP_PATH"
+elif [[ "$SKIP_BUILD" == "1" ]]; then
+  APP_PATH="$DERIVED_DATA_PATH/Build/Products/Debug-iphonesimulator/App.app"
+else
+  APP_PATH=""
+fi
 
 if [[ "$SKIP_BUILD" != "1" ]]; then
   (cd "$ROOT_DIR" && bun run build)
@@ -45,7 +53,9 @@ if [[ "$SKIP_BUILD" != "1" ]]; then
     build
 fi
 
-APP_PATH="$DERIVED_DATA_PATH/Build/Products/Debug-iphonesimulator/App.app"
+if [[ -z "${APP_PATH:-}" ]]; then
+  APP_PATH="$DERIVED_DATA_PATH/Build/Products/Debug-iphonesimulator/App.app"
+fi
 if [[ ! -d "$APP_PATH" ]]; then
   echo "Expected iOS simulator app at $APP_PATH" >&2
   exit 1
