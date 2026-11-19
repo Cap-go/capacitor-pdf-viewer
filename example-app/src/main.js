@@ -278,8 +278,7 @@ const runE2eOpenWithColor = async () => {
     await PdfViewer.setBackgroundColor({ color: '#335577' });
     await expectNativeBackground('#ff335577');
     await setE2eStatus('E2E: set-bg-while-open ok #ff335577');
-    await PdfViewer.close();
-    await setE2eStatus('E2E: open-with-color ok');
+    log('e2e', 'E2E: open-with-color ok');
     return true;
   } catch (error) {
     await PdfViewer.close().catch(() => {});
