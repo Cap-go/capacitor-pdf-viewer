@@ -231,8 +231,11 @@ const openE2eFromSource = async (source, options = {}) => {
 const normalizeArgbHex = (hex) => hex.trim().toLowerCase();
 
 const expectNativeBackground = async (expectedArgb) => {
-  await new Promise((resolve) => window.setTimeout(resolve, 150));
-  const { color } = await PdfViewer.getViewerBackgroundColor();
+  await new Promise((resolve) => window.setTimeout(resolve, 600));
+  const { color } = await withE2eTimeout(
+    PdfViewer.getViewerBackgroundColor(),
+    'getViewerBackgroundColor',
+  );
   const got = normalizeArgbHex(color);
   const want = normalizeArgbHex(expectedArgb);
   if (got !== want) {
