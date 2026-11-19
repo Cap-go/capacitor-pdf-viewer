@@ -273,6 +273,8 @@ See **`example-app/`** (button **Custom UI (toBack)**) for a working demo.
 * [`setBackgroundColor(...)`](#setbackgroundcolor)
 * [`getViewerBackgroundColor()`](#getviewerbackgroundcolor)
 * [`setE2eHarnessLabel(...)`](#sete2eharnesslabel)
+* [`setE2eHarnessState(...)`](#sete2eharnessstate)
+* [`getE2eHarnessState()`](#gete2eharnessstate)
 * [`getPageCount()`](#getpagecount)
 * [`getCurrentPage()`](#getcurrentpage)
 * [`hide()`](#hide)
@@ -437,6 +439,38 @@ Mirror E2E status text to a native on-screen label (example app Maestro harness)
 | Param         | Type                                                                            |
 | ------------- | ------------------------------------------------------------------------------- |
 | **`options`** | <code><a href="#sete2eharnesslabeloptions">SetE2eHarnessLabelOptions</a></code> |
+
+**Since:** 8.0.0
+
+--------------------
+
+
+### setE2eHarnessState(...)
+
+```typescript
+setE2eHarnessState(options: E2eHarnessState) => Promise<void>
+```
+
+Persist Maestro harness state for the example app (SharedPreferences / UserDefaults).
+
+| Param         | Type                                                        |
+| ------------- | ----------------------------------------------------------- |
+| **`options`** | <code><a href="#e2eharnessstate">E2eHarnessState</a></code> |
+
+**Since:** 8.0.0
+
+--------------------
+
+
+### getE2eHarnessState()
+
+```typescript
+getE2eHarnessState() => Promise<E2eHarnessState>
+```
+
+Read Maestro harness state for the example app.
+
+**Returns:** <code>Promise&lt;<a href="#e2eharnessstate">E2eHarnessState</a>&gt;</code>
 
 **Since:** 8.0.0
 
@@ -753,6 +787,15 @@ Options for {@link PdfViewerPlugin.setE2eHarnessLabel} (example app Maestro harn
 | Prop       | Type                | Description                                                            |
 | ---------- | ------------------- | ---------------------------------------------------------------------- |
 | **`text`** | <code>string</code> | Label mirrored to a native on-screen view for Maestro `assertVisible`. |
+
+
+#### E2eHarnessState
+
+Example app Maestro harness persistence across process restarts.
+
+| Prop                   | Type                 | Description                                                              |
+| ---------------------- | -------------------- | ------------------------------------------------------------------------ |
+| **`autoPassComplete`** | <code>boolean</code> | When true, the bundled auto E2E sequence already passed in this install. |
 
 
 #### PdfPageCountResult

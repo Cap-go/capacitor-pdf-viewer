@@ -378,6 +378,7 @@ const runMaestroAutoE2e = async () => {
       return;
     }
   }
+  await PdfViewer.setE2eHarnessState({ autoPassComplete: true });
   await setE2eStatus('E2E: auto pass complete');
 };
 
@@ -598,5 +599,12 @@ if (Capacitor.isNativePlatform()) {
 
 if (import.meta.env.VITE_MAESTRO_AUTO_E2E === '1' && Capacitor.isNativePlatform()) {
   console.info('CAPGO_E2E E2E: js module ready');
-  void runMaestroAutoE2e();
+  void (async () => {
+    const state = await PdfViewer.getE2eHarnessState();
+    if (!state.autoPassComplete) {
+      await runMaestroAutoE2e();
+    } else {
+      await setE2eStatus('E2E: idle');
+    }
+  })();
 }

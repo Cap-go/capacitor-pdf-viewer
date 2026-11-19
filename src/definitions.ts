@@ -231,6 +231,18 @@ export interface SetE2eHarnessLabelOptions {
 }
 
 /**
+ * Example app Maestro harness persistence across process restarts.
+ *
+ * @since 8.0.0
+ */
+export interface E2eHarnessState {
+  /**
+   * When true, the bundled auto E2E sequence already passed in this install.
+   */
+  autoPassComplete: boolean;
+}
+
+/**
  * Current page payload.
  *
  * @since 8.0.0
@@ -424,6 +436,20 @@ export interface PdfViewerPlugin {
    * @since 8.0.0
    */
   setE2eHarnessLabel(options: SetE2eHarnessLabelOptions): Promise<void>;
+
+  /**
+   * Persist Maestro harness state for the example app (SharedPreferences / UserDefaults).
+   *
+   * @since 8.0.0
+   */
+  setE2eHarnessState(options: E2eHarnessState): Promise<void>;
+
+  /**
+   * Read Maestro harness state for the example app.
+   *
+   * @since 8.0.0
+   */
+  getE2eHarnessState(): Promise<E2eHarnessState>;
 
   /**
    * Read the total page count of the open document.

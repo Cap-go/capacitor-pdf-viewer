@@ -17,6 +17,8 @@ public class PdfViewerPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "setBackgroundColor", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getViewerBackgroundColor", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setE2eHarnessLabel", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "setE2eHarnessState", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getE2eHarnessState", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getPageCount", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getCurrentPage", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "hide", returnType: CAPPluginReturnPromise),
@@ -180,6 +182,7 @@ public class PdfViewerPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     private var e2eHarnessLabel: UILabel?
+    private let e2eHarnessDefaultsKey = "capgo_pdfviewer_e2e_auto_pass_complete"
 
     @objc func setE2eHarnessLabel(_ call: CAPPluginCall) {
         let text = call.getString("text") ?? ""
@@ -216,6 +219,18 @@ public class PdfViewerPlugin: CAPPlugin, CAPBridgedPlugin {
         ])
         e2eHarnessLabel = label
         return label
+    }
+
+    @objc func setE2eHarnessState(_ call: CAPPluginCall) {
+        let done = call.getBool("autoPassComplete") ?? false
+        UserDefaults.standard.set(done, forKey: e2eHarnessDefaultsKey)
+        call.resolve()
+    }
+
+    @objc func getE2eHarnessState(_ call: CAPPluginCall) {
+        call.resolve([
+            "autoPassComplete": UserDefaults.standard.bool(forKey: e2eHarnessDefaultsKey),
+        ])
     }
 
     @objc func getPageCount(_ call: CAPPluginCall) {

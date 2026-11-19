@@ -11,6 +11,7 @@ import type {
   PdfViewerPlugin,
   PluginVersionResult,
   SetBackgroundColorOptions,
+  E2eHarnessState,
   SetE2eHarnessLabelOptions,
   SetZoomOptions,
   ViewerBackgroundColorResult,
@@ -232,6 +233,14 @@ export class PdfViewerWeb extends WebPlugin implements PdfViewerPlugin {
 
   async setE2eHarnessLabel(_options: SetE2eHarnessLabelOptions): Promise<void> {
     void _options;
+  }
+
+  async setE2eHarnessState(_options: E2eHarnessState): Promise<void> {
+    void _options;
+  }
+
+  async getE2eHarnessState(): Promise<E2eHarnessState> {
+    return { autoPassComplete: false };
   }
 
   async getPageCount(): Promise<PdfPageCountResult> {

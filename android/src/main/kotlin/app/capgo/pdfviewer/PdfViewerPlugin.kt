@@ -3,6 +3,7 @@ package app.capgo.pdfviewer
 import android.graphics.Color
 import android.view.View
 import android.view.ViewGroup
+import android.content.Context
 import android.graphics.Typeface
 import android.view.Gravity
 import android.widget.FrameLayout
@@ -33,6 +34,9 @@ class PdfViewerPlugin : Plugin() {
     private var touchRouter: PdfUnderWebViewTouchRouter? = null
     private var underWebViewLayoutListener: View.OnLayoutChangeListener? = null
     private var e2eHarnessLabel: TextView? = null
+    private val e2ePrefs by lazy {
+        context.getSharedPreferences("capgo_pdfviewer_e2e_harness", Context.MODE_PRIVATE)
+    }
 
     override fun load() {
         implementation = PdfViewer(context)
@@ -211,6 +215,23 @@ class PdfViewerPlugin : Plugin() {
         label.bringToFront()
         e2eHarnessLabel = label
         return label
+    }
+
+    @PluginMethod
+    fun setE2eHarnessState(call: PluginCall) {
+        val autoPassComplete = call.getBoolean("autoPassComplete", false) == true
+        e2ePrefs.edit().putBoolean("auto_pass_complete", autoPassComplete).apply()
+        call.resolve()
+    }
+
+    @PluginMethod
+    fun getE2eHarnessState(call: PluginCall) {
+        call.resolve(
+            JSObject().put(
+                "autoPassComplete",
+                e2ePrefs.getBoolean("auto_pass_complete", false),
+            ),
+        )
     }
 
     @PluginMethod
