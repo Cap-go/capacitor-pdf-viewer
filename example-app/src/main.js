@@ -9,7 +9,12 @@ const sampleUrl = new URL('/sample.pdf', window.location.origin).href;
 const customUi = document.getElementById('custom-pdf-ui');
 const customPageIndicator = document.getElementById('custom-page-indicator');
 
+let cachedBundledSample = null;
+
 const bundledSample = async () => {
+  if (cachedBundledSample) {
+    return cachedBundledSample;
+  }
   const response = await fetch(sampleUrl);
   if (!response.ok) {
     throw new Error(`Failed to load sample PDF (${response.status})`);
@@ -19,7 +24,8 @@ const bundledSample = async () => {
   for (let i = 0; i < bytes.length; i += 0x8000) {
     binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
   }
-  return btoa(binary);
+  cachedBundledSample = btoa(binary);
+  return cachedBundledSample;
 };
 
 let currentPage = 1;
@@ -271,8 +277,8 @@ const runE2eOpenWithColor = async () => {
     await expectNativeBackground('#ff224466');
     await PdfViewer.setBackgroundColor({ color: '#335577' });
     await expectNativeBackground('#ff335577');
-    await PdfViewer.close();
     await setE2eStatus('E2E: set-bg-while-open ok #ff335577');
+    await PdfViewer.close();
     await setE2eStatus('E2E: open-with-color ok');
     return true;
   } catch (error) {
@@ -603,6 +609,7 @@ document.getElementById('custom-close').addEventListener('click', async () => {
 });
 
 if (Capacitor.isNativePlatform()) {
+  void bundledSample().catch(() => {});
   void (async () => {
     await mirrorE2eHarness('E2E: idle');
   })();

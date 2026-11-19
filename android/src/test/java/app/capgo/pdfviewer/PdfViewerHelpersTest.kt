@@ -57,4 +57,16 @@ class PdfViewerHelpersTest {
         assertEquals(null, PdfViewerHelpers.parseArgbHex("#12345"))
         assertEquals(null, PdfViewerHelpers.parseArgbHex(null))
     }
+
+    @Test
+    fun formatArgbHex_e2eColors() {
+        assertEquals("#ff224466", PdfViewerHelpers.formatArgbHex(0xFF224466.toInt()))
+        assertEquals("#ff335577", PdfViewerHelpers.formatArgbHex(0xFF335577.toInt()))
+    }
+
+    @Test
+    fun formatArgbHex_roundtrip_rrggbb() {
+        val parsed = PdfViewerHelpers.parseArgbHex("#335577")!!
+        assertEquals("#ff335577", PdfViewerHelpers.formatArgbHex(parsed))
+    }
 }

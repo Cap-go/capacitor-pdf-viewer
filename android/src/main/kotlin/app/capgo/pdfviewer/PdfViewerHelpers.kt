@@ -51,7 +51,8 @@ internal object PdfViewerHelpers {
         }
     }
 
-    fun formatArgbHex(color: Int): String = String.format("#%08x", color)
+    fun formatArgbHex(color: Int): String =
+        String.format("#%08x", color.toLong() and 0xffffffffL)
 
     private fun looksLikeBase64(value: String): Boolean {
         val compact = value.replace("\\s".toRegex(), "")
