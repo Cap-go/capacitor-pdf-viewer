@@ -25,7 +25,7 @@ echo "Default background screenshot: $DEFAULT_SHOT"
 bun "$ROOT_DIR/scripts/maestro/check-margin-pixel.mjs" "$CUSTOM_SHOT" 51 85 119
 if [[ "${CAPGO_MAESTRO_PIXEL_NEGATIVE:-0}" == "1" ]]; then
   set +e
-  bun "$ROOT_DIR/scripts/maestro/check-margin-pixel.mjs" "$CUSTOM_SHOT" 0 0 0
+  CAPGO_MAESTRO_PIXEL_SPOT=1 bun "$ROOT_DIR/scripts/maestro/check-margin-pixel.mjs" "$CUSTOM_SHOT" 0 0 0
   NEG_EXIT=$?
   set -e
   if [[ "$NEG_EXIT" -eq 0 ]]; then
