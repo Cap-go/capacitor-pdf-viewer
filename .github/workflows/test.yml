@@ -186,6 +186,9 @@ jobs:
         with:
           name: maestro-android-apk
           path: example-app/android/app/build/outputs/apk/debug
+      - uses: oven-sh/setup-bun@v2
+      - name: Install plugin deps for Maestro pixel checks
+        run: bun install
       - name: Setup Maestro
         uses: ./.github/actions/setup-maestro
         with:
@@ -236,6 +239,8 @@ jobs:
         with:
           persist-credentials: false
       - uses: oven-sh/setup-bun@v2
+      - name: Install plugin deps for Maestro pixel checks
+        run: bun install
       - name: Download Maestro iOS app
         uses: actions/download-artifact@v8
         with:
