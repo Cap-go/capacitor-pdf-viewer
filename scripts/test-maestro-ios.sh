@@ -72,13 +72,23 @@ xcrun simctl install "$SIMULATOR_ID" "$APP_PATH"
 rm -rf "$RESULTS_DIR"
 mkdir -p "$RESULTS_DIR"
 
+MAESTRO_WS="$RESULTS_DIR/maestro-workspace"
+rm -rf "$MAESTRO_WS"
+mkdir -p "$MAESTRO_WS"
+cp "$ROOT_DIR/example-app/.maestro/background-color/background-color-auto.yaml" "$MAESTRO_WS/"
+cat > "$MAESTRO_WS/config.yaml" <<EOF
+testOutputDir: $RESULTS_DIR
+flows:
+  - background-color-auto.yaml
+EOF
+
 if [[ "$USE_LOG_E2E" == "1" ]]; then
   echo "CAPGO_MAESTRO_IOS_LOG=1 is deprecated; use Maestro flows." >&2
   exit 1
 fi
 
 maestro --device "$SIMULATOR_ID" test \
-  "$FLOW_PATH" \
+  "$MAESTRO_WS" \
   --debug-output "$RESULTS_DIR/artifacts" \
   --flatten-debug-output \
   --format junit \

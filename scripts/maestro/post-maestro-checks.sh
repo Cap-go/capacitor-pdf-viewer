@@ -7,7 +7,7 @@ ARTIFACTS_DIR="$RESULTS_DIR/artifacts"
 
 find_shot() {
   local name="$1"
-  find "$ARTIFACTS_DIR" -type f -name "${name}*.png" 2>/dev/null | head -n 1
+  find "$RESULTS_DIR" -type f -name "${name}*.png" 2>/dev/null | head -n 1
 }
 
 CUSTOM_SHOT="$(find_shot e2e-custom-bg-open || true)"

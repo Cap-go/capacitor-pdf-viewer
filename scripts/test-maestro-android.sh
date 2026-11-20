@@ -5,7 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 EXAMPLE_DIR="$ROOT_DIR/example-app"
 APK_PATH="$EXAMPLE_DIR/android/app/build/outputs/apk/debug/app-debug.apk"
 RESULTS_DIR="$ROOT_DIR/maestro-results"
-FLOW_PATH="${CAPGO_MAESTRO_FLOW_PATH:-$ROOT_DIR/example-app/.maestro/background-color/background-color-auto.yaml}"
+FLOW_PATH="${CAPGO_MAESTRO_FLOW_PATH:-$ROOT_DIR/example-app/.maestro/background-color}"
 APP_ID="app.capgo.pdfviewer"
 SKIP_BUILD="${CAPGO_MAESTRO_SKIP_BUILD:-0}"
 
@@ -91,13 +91,23 @@ adb -s "$DEVICE_ID" shell am force-stop "$APP_ID" >/dev/null 2>&1 || true
 rm -rf "$RESULTS_DIR"
 mkdir -p "$RESULTS_DIR"
 
+MAESTRO_WS="$RESULTS_DIR/maestro-workspace"
+rm -rf "$MAESTRO_WS"
+mkdir -p "$MAESTRO_WS"
+cp "$ROOT_DIR/example-app/.maestro/background-color/background-color-auto.yaml" "$MAESTRO_WS/"
+cat > "$MAESTRO_WS/config.yaml" <<EOF
+testOutputDir: $RESULTS_DIR
+flows:
+  - background-color-auto.yaml
+EOF
+
 if [[ "$USE_LOGCAT_E2E" == "1" ]]; then
   echo "CAPGO_MAESTRO_ANDROID_LOGCAT=1 is deprecated; use Maestro flows." >&2
   exit 1
 fi
 
 ANDROID_SERIAL="$DEVICE_ID" MAESTRO_CLI_NO_ANALYTICS=1 maestro test \
-  "$FLOW_PATH" \
+  "$MAESTRO_WS" \
   --debug-output "$RESULTS_DIR/artifacts" \
   --flatten-debug-output \
   --format junit \
