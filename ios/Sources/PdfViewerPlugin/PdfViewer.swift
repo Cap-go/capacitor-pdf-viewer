@@ -46,6 +46,48 @@ import UIKit
         return compact.unicodeScalars.allSatisfy { allowed.contains($0) }
     }
 
+    /// Parse `#RRGGBB` or `#AARRGGBB`. Returns `nil` when the string is absent or invalid.
+    public static func color(fromHex hex: String?) -> UIColor? {
+        guard let hex, !hex.isEmpty else { return nil }
+        var cleaned = hex.trimmingCharacters(in: .whitespacesAndNewlines)
+        if cleaned.hasPrefix("#") {
+            cleaned.removeFirst()
+        }
+        let length = cleaned.count
+        guard length == 6 || length == 8 else { return nil }
+        let scanner = Scanner(string: cleaned)
+        var value: UInt64 = 0
+        guard scanner.scanHexInt64(&value), scanner.isAtEnd else { return nil }
+
+        let alpha, red, green, blue: CGFloat
+        if length == 8 {
+            alpha = CGFloat((value & 0xff000000) >> 24) / 255.0
+            red = CGFloat((value & 0x00ff0000) >> 16) / 255.0
+            green = CGFloat((value & 0x0000ff00) >> 8) / 255.0
+            blue = CGFloat(value & 0x000000ff) / 255.0
+        } else {
+            alpha = 1.0
+            red = CGFloat((value & 0xff0000) >> 16) / 255.0
+            green = CGFloat((value & 0x00ff00) >> 8) / 255.0
+            blue = CGFloat(value & 0x0000ff) / 255.0
+        }
+        return UIColor(red: red, green: green, blue: blue, alpha: alpha)
+    }
+
+    /// Encodes a `UIColor` as plugin-style `#AARRGGBB`.
+    public static func hexString(from color: UIColor) -> String {
+        var red: CGFloat = 0
+        var green: CGFloat = 0
+        var blue: CGFloat = 0
+        var alpha: CGFloat = 0
+        color.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+        let a = Int((alpha * 255).rounded()) & 0xff
+        let r = Int((red * 255).rounded()) & 0xff
+        let g = Int((green * 255).rounded()) & 0xff
+        let b = Int((blue * 255).rounded()) & 0xff
+        return String(format: "#%02x%02x%02x%02x", a, r, g, b)
+    }
+
     public static func loadDocument(
         source: String,
         sourceType: String,

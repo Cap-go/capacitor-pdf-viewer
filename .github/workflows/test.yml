@@ -1,5 +1,9 @@
 name: Build source code and test it
 
+concurrency:
+  group: test-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
 on:
   push:
     branches:
@@ -7,6 +11,9 @@ on:
   pull_request:
     branches: [main]
   workflow_call: # Allow this workflow to be called by other workflows
+
+env:
+  MAESTRO_VERSION: cli-2.4.0
 
 jobs:
   guard_swiftpm_version:
@@ -61,6 +68,23 @@ jobs:
       - name: Verify packed package in example app (Android)
         shell: bash
         run: bash ./.github/scripts/verify-packed-example.sh android
+      - name: Build example debug APK for Maestro
+        run: |
+          set -euo pipefail
+          bun run build
+          cd example-app
+          bun install
+          bun run build:maestro-e2e
+          bunx cap add android
+          bunx cap sync android
+          cd android
+          ./gradlew assembleDebug
+      - name: Upload Maestro Android APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: maestro-android-apk
+          path: example-app/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
   build_ios:
     runs-on: macOS-latest
     # Keep this job capped at 10 minutes; never raise it unless explicitly asked.
@@ -88,6 +112,30 @@ jobs:
       - name: Verify packed package in example app (iOS)
         shell: bash
         run: bash ./.github/scripts/verify-packed-example.sh ios
+      - name: Build example iOS app for Maestro
+        run: |
+          set -euo pipefail
+          bun run build
+          cd example-app
+          bun install
+          bun run build:maestro-e2e
+          bunx cap sync ios
+          SIMULATOR_ID="$(../scripts/maestro/select-ios-simulator.sh)"
+          DERIVED_DATA="$RUNNER_TEMP/maestro-pdf-viewer-derived"
+          xcodebuild \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Debug \
+            -destination "id=$SIMULATOR_ID" \
+            -derivedDataPath "$DERIVED_DATA" \
+            build
+          tar -czf ../maestro-ios-app.tar.gz -C "$DERIVED_DATA/Build/Products/Debug-iphonesimulator" App.app
+      - name: Upload Maestro iOS app
+        uses: actions/upload-artifact@v7
+        with:
+          name: maestro-ios-app
+          path: maestro-ios-app.tar.gz
+          if-no-files-found: error
   web:
     runs-on: ubuntu-latest
     # Keep this job capped at 10 minutes; never raise it unless explicitly asked.
@@ -119,3 +167,124 @@ jobs:
       - name: Verify
         id: verify_code
         run: bun run verify:web
+
+  maestro_android_background_color:
+    needs: build_android
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    name: Maestro Android / background color
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Cache Android emulator (API 30)
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: maestro-avd-api30-${{ runner.os }}-pixel_7-x86_64
+      - name: Download Maestro Android APK
+        uses: actions/download-artifact@v8
+        with:
+          name: maestro-android-apk
+          path: example-app/android/app/build/outputs/apk/debug
+      - uses: oven-sh/setup-bun@v2
+      - name: Install plugin deps for Maestro pixel checks
+        run: bun install
+      - name: Setup Maestro
+        uses: ./.github/actions/setup-maestro
+        with:
+          maestro-version: ${{ env.MAESTRO_VERSION }}
+      - name: Enable KVM group perms
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Run Maestro background color flows
+        timeout-minutes: 5
+        env:
+          CAPGO_MAESTRO_SKIP_BUILD: "1"
+          CAPGO_MAESTRO_ANDROID_LOGCAT: "0"
+          CAPGO_MAESTRO_EMULATOR_BOOT_TIMEOUT_SECONDS: "180"
+          CAPGO_MAESTRO_PIXEL_NEGATIVE: "1"
+          MAESTRO_DRIVER_STARTUP_TIMEOUT: "120000"
+        uses: reactivecircus/android-emulator-runner@v2.34.0
+        with:
+          api-level: 30
+          arch: x86_64
+          profile: pixel_7
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -no-metrics
+          # android-emulator-runner runs script lines in separate shells; use step env + one command.
+          script: bash ./scripts/test-maestro-android.sh
+      - name: Upload Maestro artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: maestro-results-android-background-color
+          path: maestro-results
+      - name: Upload Maestro PR screenshots
+        if: success()
+        uses: actions/upload-artifact@v7
+        with:
+          name: maestro-screenshots-android
+          path: docs/screenshots/bg-color-*-android.png
+
+  maestro_ios_background_color:
+    needs: build_ios
+    runs-on: macOS-latest
+    # Simulator boot + Maestro needs more than 5m on macOS queue/runners.
+    timeout-minutes: 10
+    name: Maestro iOS / background color
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@v2
+      - name: Install plugin deps for Maestro pixel checks
+        run: bun install
+      - name: Download Maestro iOS app
+        uses: actions/download-artifact@v8
+        with:
+          name: maestro-ios-app
+          path: maestro-ios-bundle
+      - name: Extract Maestro iOS app
+        run: |
+          set -euo pipefail
+          mkdir -p maestro-ios-app
+          tar -xzf maestro-ios-bundle/maestro-ios-app.tar.gz -C maestro-ios-app
+          SIMULATOR_ID="$(scripts/maestro/select-ios-simulator.sh)"
+          echo "CAPGO_MAESTRO_IOS_SIMULATOR_ID=$SIMULATOR_ID" >> "$GITHUB_ENV"
+          echo "CAPGO_MAESTRO_IOS_APP_PATH=$PWD/maestro-ios-app/App.app" >> "$GITHUB_ENV"
+          xcrun simctl boot "$SIMULATOR_ID" >/dev/null 2>&1 || true
+          xcrun simctl bootstatus "$SIMULATOR_ID" -b
+      - name: Setup Maestro
+        uses: ./.github/actions/setup-maestro
+        with:
+          maestro-version: ${{ env.MAESTRO_VERSION }}
+      - name: Run Maestro background color flows
+        timeout-minutes: 10
+        env:
+          CAPGO_MAESTRO_IOS_SKIP_BOOT: "1"
+          CAPGO_MAESTRO_PIXEL_NEGATIVE: "1"
+          MAESTRO_DRIVER_STARTUP_TIMEOUT: 90000
+        run: |
+          set -euo pipefail
+          export PATH="$HOME/.bun/bin:$PATH"
+          export CAPGO_MAESTRO_SKIP_BUILD=1
+          ./scripts/test-maestro-ios.sh
+      - name: Upload Maestro artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: maestro-results-ios-background-color
+          path: maestro-results-ios
+      - name: Upload Maestro PR screenshots
+        if: success()
+        uses: actions/upload-artifact@v7
+        with:
+          name: maestro-screenshots-ios
+          path: docs/screenshots/bg-color-*-ios.png

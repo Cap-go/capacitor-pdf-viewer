@@ -54,6 +54,7 @@ class PdfViewerView @JvmOverloads constructor(
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val scroller = OverScroller(context)
     private val density = resources.displayMetrics.density
+    private var canvasBackgroundColor = Color.BLACK
 
     private val scaleDetector = ScaleGestureDetector(
         context,
@@ -177,6 +178,13 @@ class PdfViewerView @JvmOverloads constructor(
         links.clear()
     }
 
+    fun setCanvasBackgroundColor(color: Int) {
+        canvasBackgroundColor = color
+        invalidate()
+    }
+
+    fun canvasBackgroundColor(): Int = canvasBackgroundColor
+
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
         if (document != null && w > 0) {
@@ -193,7 +201,7 @@ class PdfViewerView @JvmOverloads constructor(
     }
 
     override fun onDraw(canvas: Canvas) {
-        canvas.drawColor(Color.BLACK)
+        canvas.drawColor(canvasBackgroundColor)
         if (pageCount == 0 || width == 0) return
 
         if (continuous) {

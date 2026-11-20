@@ -3,8 +3,12 @@ package app.capgo.pdfviewer
 import android.graphics.Color
 import android.view.View
 import android.view.ViewGroup
+import android.content.Context
+import android.graphics.Typeface
+import android.view.Gravity
 import android.widget.FrameLayout
 import android.widget.ImageButton
+import android.widget.TextView
 import com.getcapacitor.JSObject
 import com.getcapacitor.Plugin
 import com.getcapacitor.PluginCall
@@ -29,6 +33,10 @@ class PdfViewerPlugin : Plugin() {
     private var webViewVisualState: PdfToBackCompositor.SavedState? = null
     private var touchRouter: PdfUnderWebViewTouchRouter? = null
     private var underWebViewLayoutListener: View.OnLayoutChangeListener? = null
+    private var e2eHarnessLabel: TextView? = null
+    private val e2ePrefs by lazy {
+        context.getSharedPreferences("capgo_pdfviewer_e2e_harness", Context.MODE_PRIVATE)
+    }
 
     override fun load() {
         implementation = PdfViewer(context)
@@ -53,6 +61,7 @@ class PdfViewerPlugin : Plugin() {
         val headers = stringMap(call.getObject("headers"))
         val nativeUi = call.getBoolean("nativeUi", mode != "underWebView") == true
         val requestedLayout = readLayout(call.getObject("layout"))
+        val backgroundColorHex = call.getString("backgroundColor")
 
         if (mode == "inline" && elementId.isNullOrBlank()) {
             val message = "elementId is required when mode is inline"
@@ -72,7 +81,17 @@ class PdfViewerPlugin : Plugin() {
                         return@runOnUiThread
                     }
                     try {
-                        present(opened, mode, elementId, page, scrollMode, nativeUi, requestedLayout, call)
+                        present(
+                            opened,
+                            mode,
+                            elementId,
+                            page,
+                            scrollMode,
+                            nativeUi,
+                            requestedLayout,
+                            backgroundColorHex,
+                            call,
+                        )
                     } catch (error: Exception) {
                         val owned = document === opened
                         dismiss(emitClose = false)
@@ -160,6 +179,97 @@ class PdfViewerPlugin : Plugin() {
     }
 
     @PluginMethod
+    fun setE2eHarnessLabel(call: PluginCall) {
+        val text = call.getString("text") ?: ""
+        bridge.activity.runOnUiThread {
+            val label = ensureE2eHarnessLabel()
+            label.text = text
+            label.contentDescription = text
+            label.bringToFront()
+            call.resolve()
+        }
+    }
+
+    private fun ensureE2eHarnessLabel(): TextView {
+        e2eHarnessLabel?.let { return it }
+        val activity = bridge.activity
+        val label =
+            TextView(activity).apply {
+                setTextColor(Color.WHITE)
+                textSize = 12f
+                setTypeface(typeface, Typeface.BOLD)
+                setBackgroundColor(0xEB00162A.toInt())
+                setPadding(24, 16, 24, 16)
+                isClickable = false
+                importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES
+            }
+        label.elevation = 10_000f
+        label.translationZ = 10_000f
+        val params =
+            FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply { gravity = Gravity.TOP }
+        activity.window.addContentView(label, params)
+        label.bringToFront()
+        e2eHarnessLabel = label
+        return label
+    }
+
+    @PluginMethod
+    fun setE2eHarnessState(call: PluginCall) {
+        val autoPassComplete = call.getBoolean("autoPassComplete", false) == true
+        e2ePrefs.edit().putBoolean("auto_pass_complete", autoPassComplete).apply()
+        call.resolve()
+    }
+
+    @PluginMethod
+    fun getE2eHarnessState(call: PluginCall) {
+        call.resolve(
+            JSObject().put(
+                "autoPassComplete",
+                e2ePrefs.getBoolean("auto_pass_complete", false),
+            ),
+        )
+    }
+
+    @PluginMethod
+    fun getViewerBackgroundColor(call: PluginCall) {
+        val activeViewer = viewer
+        if (activeViewer == null) {
+            call.reject("No PDF is open")
+            return
+        }
+        bridge.activity.runOnUiThread {
+            val color = activeViewer.canvasBackgroundColor()
+            call.resolve(JSObject().put("color", PdfViewerHelpers.formatArgbHex(color)))
+        }
+    }
+
+    @PluginMethod
+    fun setBackgroundColor(call: PluginCall) {
+        val colorHex = call.getString("color")
+        val parsed = PdfViewerHelpers.parseArgbHex(colorHex)
+        if (parsed == null) {
+            call.reject("Invalid color; expected #RRGGBB or #AARRGGBB")
+            return
+        }
+        val activeViewer = viewer
+        val container = host
+        if (activeViewer == null || container == null) {
+            call.reject("No PDF is open")
+            return
+        }
+        bridge.activity.runOnUiThread {
+            activeViewer.setCanvasBackgroundColor(parsed)
+            if (!underWebView) {
+                container.setBackgroundColor(parsed)
+            }
+            call.resolve()
+        }
+    }
+
+    @PluginMethod
     fun getPageCount(call: PluginCall) {
         if (document == null || viewer == null) {
             call.reject("No PDF is open")
@@ -241,6 +351,7 @@ class PdfViewerPlugin : Plugin() {
         scrollMode: String,
         nativeUi: Boolean,
         requestedLayout: LayoutCss,
+        backgroundColorHex: String?,
         call: PluginCall,
     ) {
         dismiss(emitClose = false)
@@ -272,8 +383,22 @@ class PdfViewerPlugin : Plugin() {
             }
         }
 
+        val parsedBackground = PdfViewerHelpers.parseArgbHex(backgroundColorHex)
+        val defaultCanvasColor = when {
+            underWebView -> Color.TRANSPARENT
+            else -> Color.BLACK
+        }
+        val canvasColor = parsedBackground ?: defaultCanvasColor
+
         val container = FrameLayout(context)
-        container.setBackgroundColor(if (underWebView) Color.TRANSPARENT else Color.BLACK)
+        container.setBackgroundColor(
+            when {
+                underWebView -> Color.TRANSPARENT
+                parsedBackground != null -> parsedBackground
+                else -> Color.BLACK
+            },
+        )
+        pdfView.setCanvasBackgroundColor(canvasColor)
         container.addView(
             pdfView,
             FrameLayout.LayoutParams(

@@ -143,6 +143,15 @@ export interface OpenPdfOptions {
    * @since 8.0.0
    */
   scrollMode?: PdfScrollMode;
+  /**
+   * Background color for the area around and between PDF pages (`#RRGGBB` or `#AARRGGBB`).
+   * When omitted or invalid, Android uses black and iOS uses `systemBackground` (clear in `underWebView`).
+   * On web this colors the viewer host around the embedded browser PDF frame.
+   *
+   * @platform android, ios, web
+   * @since 8.0.0
+   */
+  backgroundColor?: string;
 }
 
 /**
@@ -183,6 +192,54 @@ export interface SetZoomOptions {
    * Zoom multiplier. `1` is the default fit scale on native.
    */
   scale: number;
+}
+
+/**
+ * Options for {@link PdfViewerPlugin.setBackgroundColor}.
+ *
+ * @since 8.0.0
+ */
+export interface SetBackgroundColorOptions {
+  /**
+   * Hex color (`#RRGGBB` or `#AARRGGBB`) applied around and between PDF pages.
+   */
+  color: string;
+}
+
+/**
+ * Result from {@link PdfViewerPlugin.getViewerBackgroundColor}.
+ *
+ * @since 8.0.0
+ */
+export interface ViewerBackgroundColorResult {
+  /**
+   * Active viewer background as `#AARRGGBB` (native canvas / PDF view).
+   */
+  color: string;
+}
+
+/**
+ * Options for {@link PdfViewerPlugin.setE2eHarnessLabel} (example app Maestro harness).
+ *
+ * @since 8.0.0
+ */
+export interface SetE2eHarnessLabelOptions {
+  /**
+   * Label mirrored to a native on-screen view for Maestro `assertVisible`.
+   */
+  text: string;
+}
+
+/**
+ * Example app Maestro harness persistence across process restarts.
+ *
+ * @since 8.0.0
+ */
+export interface E2eHarnessState {
+  /**
+   * When true, the bundled auto E2E sequence already passed in this install.
+   */
+  autoPassComplete: boolean;
 }
 
 /**
@@ -358,6 +415,41 @@ export interface PdfViewerPlugin {
    * @since 8.0.0
    */
   setZoom(options: SetZoomOptions): Promise<void>;
+
+  /**
+   * Set the viewer background color while a PDF is open.
+   *
+   * @since 8.0.0
+   */
+  setBackgroundColor(options: SetBackgroundColorOptions): Promise<void>;
+
+  /**
+   * Read the rendered viewer background while a PDF is open (example app E2E harness).
+   *
+   * @since 8.0.0
+   */
+  getViewerBackgroundColor(): Promise<ViewerBackgroundColorResult>;
+
+  /**
+   * Mirror E2E status text to a native on-screen label (example app Maestro harness).
+   *
+   * @since 8.0.0
+   */
+  setE2eHarnessLabel(options: SetE2eHarnessLabelOptions): Promise<void>;
+
+  /**
+   * Persist Maestro harness state for the example app (SharedPreferences / UserDefaults).
+   *
+   * @since 8.0.0
+   */
+  setE2eHarnessState(options: E2eHarnessState): Promise<void>;
+
+  /**
+   * Read Maestro harness state for the example app.
+   *
+   * @since 8.0.0
+   */
+  getE2eHarnessState(): Promise<E2eHarnessState>;
 
   /**
    * Read the total page count of the open document.

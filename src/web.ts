@@ -1,5 +1,6 @@
 import { WebPlugin } from '@capacitor/core';
 
+import { parseCssHexColor } from './color-utils';
 import type {
   GoToPageOptions,
   OpenPdfOptions,
@@ -9,7 +10,11 @@ import type {
   PdfPageCountResult,
   PdfViewerPlugin,
   PluginVersionResult,
+  SetBackgroundColorOptions,
+  E2eHarnessState,
+  SetE2eHarnessLabelOptions,
   SetZoomOptions,
+  ViewerBackgroundColorResult,
 } from './definitions';
 import { inferSourceType, sourceToBlobUrl } from './source-utils';
 
@@ -67,6 +72,7 @@ export class PdfViewerWeb extends WebPlugin implements PdfViewerPlugin {
       this.page = Math.max(1, options.page ?? 1);
       const url = `${blobUrl}#page=${this.page}`;
 
+      const parsedBackground = parseCssHexColor(options.backgroundColor);
       const frame = document.createElement('iframe');
       frame.title = 'PDF Viewer';
       frame.src = url;
@@ -75,8 +81,10 @@ export class PdfViewerWeb extends WebPlugin implements PdfViewerPlugin {
         border: '0',
         width: '100%',
         height: '100%',
-        background: '#111',
       });
+      if (parsedBackground) {
+        frame.style.background = parsedBackground;
+      }
 
       let host: HTMLElement;
       if (mode === 'inline' && options.elementId) {
@@ -89,7 +97,13 @@ export class PdfViewerWeb extends WebPlugin implements PdfViewerPlugin {
         }
         target.replaceChildren();
         host = target;
-        Object.assign(host.style, { position: host.style.position || 'relative', overflow: 'hidden' });
+        Object.assign(host.style, {
+          position: host.style.position || 'relative',
+          overflow: 'hidden',
+        });
+        if (parsedBackground) {
+          host.style.background = parsedBackground;
+        }
         host.appendChild(frame);
       } else {
         host = document.createElement('div');
@@ -97,7 +111,7 @@ export class PdfViewerWeb extends WebPlugin implements PdfViewerPlugin {
           position: 'fixed',
           inset: '0',
           zIndex: '2147483646',
-          background: showNativeUi ? 'rgba(0,0,0,0.92)' : 'transparent',
+          background: parsedBackground ?? (showNativeUi ? 'rgba(0,0,0,0.92)' : 'transparent'),
           display: 'flex',
           flexDirection: 'column',
         });
@@ -188,6 +202,45 @@ export class PdfViewerWeb extends WebPlugin implements PdfViewerPlugin {
       throw new Error('No PDF is open');
     }
     void options;
+  }
+
+  async setBackgroundColor(options: SetBackgroundColorOptions): Promise<void> {
+    if (!this.frame || !this.host) {
+      throw new Error('No PDF is open');
+    }
+    const parsed = parseCssHexColor(options.color);
+    if (!parsed) {
+      throw new Error('Invalid color; expected #RRGGBB or #AARRGGBB');
+    }
+    this.frame.style.background = parsed;
+    this.host.style.background = parsed;
+  }
+
+  async getViewerBackgroundColor(): Promise<ViewerBackgroundColorResult> {
+    if (!this.host) {
+      throw new Error('No PDF is open');
+    }
+    const inline = parseCssHexColor(this.host.style.background);
+    if (inline) {
+      const hex = inline.slice(1);
+      if (hex.length === 8) {
+        return { color: `#${hex.slice(6, 8)}${hex.slice(0, 6)}` };
+      }
+      return { color: `#ff${hex}` };
+    }
+    return { color: '#00000000' };
+  }
+
+  async setE2eHarnessLabel(_options: SetE2eHarnessLabelOptions): Promise<void> {
+    void _options;
+  }
+
+  async setE2eHarnessState(_options: E2eHarnessState): Promise<void> {
+    void _options;
+  }
+
+  async getE2eHarnessState(): Promise<E2eHarnessState> {
+    return { autoPassComplete: false };
   }
 
   async getPageCount(): Promise<PdfPageCountResult> {

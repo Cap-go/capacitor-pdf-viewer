@@ -40,4 +40,33 @@ class PdfViewerHelpersTest {
         assertEquals(1, PdfViewerHelpers.oneBasedPage(0, 3))
         assertEquals(3, PdfViewerHelpers.oneBasedPage(2, 3))
     }
+
+    @Test
+    fun parseArgbHex_rrggbb() {
+        assertEquals(0xFF1A2B3C.toInt(), PdfViewerHelpers.parseArgbHex("#1a2b3c"))
+    }
+
+    @Test
+    fun parseArgbHex_aarrggbb() {
+        assertEquals(0x80112233.toInt(), PdfViewerHelpers.parseArgbHex("#80112233"))
+    }
+
+    @Test
+    fun parseArgbHex_invalid() {
+        assertEquals(null, PdfViewerHelpers.parseArgbHex("not-a-color"))
+        assertEquals(null, PdfViewerHelpers.parseArgbHex("#12345"))
+        assertEquals(null, PdfViewerHelpers.parseArgbHex(null))
+    }
+
+    @Test
+    fun formatArgbHex_e2eColors() {
+        assertEquals("#ff224466", PdfViewerHelpers.formatArgbHex(0xFF224466.toInt()))
+        assertEquals("#ff335577", PdfViewerHelpers.formatArgbHex(0xFF335577.toInt()))
+    }
+
+    @Test
+    fun formatArgbHex_roundtrip_rrggbb() {
+        val parsed = PdfViewerHelpers.parseArgbHex("#335577")!!
+        assertEquals("#ff335577", PdfViewerHelpers.formatArgbHex(parsed))
+    }
 }

@@ -53,4 +53,23 @@ class PdfViewerTests: XCTestCase {
         let implementation = PdfViewer()
         XCTAssertEqual(implementation.getPluginVersion(), "native")
     }
+
+    func testColorFromHexRRGGBB() {
+        let color = PdfViewer.color(fromHex: "#1a2b3c")
+        XCTAssertNotNil(color)
+        var red: CGFloat = 0
+        var green: CGFloat = 0
+        var blue: CGFloat = 0
+        var alpha: CGFloat = 0
+        color?.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+        XCTAssertEqual(red, 26 / 255, accuracy: 0.01)
+        XCTAssertEqual(green, 43 / 255, accuracy: 0.01)
+        XCTAssertEqual(blue, 60 / 255, accuracy: 0.01)
+        XCTAssertEqual(alpha, 1, accuracy: 0.01)
+    }
+
+    func testColorFromHexInvalid() {
+        XCTAssertNil(PdfViewer.color(fromHex: "nope"))
+        XCTAssertNil(PdfViewer.color(fromHex: "#12345"))
+    }
 }

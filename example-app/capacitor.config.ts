@@ -6,12 +6,15 @@ const config: CapacitorConfig = {
   appId: 'app.capgo.pdfviewer',
   appName: '@capgo/capacitor-pdf-viewer',
   webDir: 'dist',
+  android: {
+    webContentsDebuggingEnabled: true,
+  },
   plugins: {
     CapacitorUpdater: {
       appId: 'app.capgo.pdfviewer',
-      autoUpdate: true,
-      autoSplashscreen: true,
-      directUpdate: 'always',
+      autoUpdate: false,
+      autoSplashscreen: false,
+      directUpdate: 'never',
       defaultChannel: 'production',
       version: pkg.version,
     },

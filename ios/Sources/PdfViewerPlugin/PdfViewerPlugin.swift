@@ -14,6 +14,11 @@ public class PdfViewerPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "nextPage", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "previousPage", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setZoom", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "setBackgroundColor", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getViewerBackgroundColor", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "setE2eHarnessLabel", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "setE2eHarnessState", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getE2eHarnessState", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getPageCount", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getCurrentPage", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "hide", returnType: CAPPluginReturnPromise),
@@ -81,7 +86,8 @@ public class PdfViewerPlugin: CAPPlugin, CAPBridgedPlugin {
                             page: page,
                             scrollMode: scrollMode,
                             nativeUi: nativeUi,
-                            layout: layout
+                            layout: layout,
+                            backgroundColorHex: call.getString("backgroundColor")
                         )
                         active.present(request: request, call: call)
                     }
@@ -149,6 +155,81 @@ public class PdfViewerPlugin: CAPPlugin, CAPBridgedPlugin {
             }
             session.setZoom(scale, call: call)
         }
+    }
+
+    @objc func setBackgroundColor(_ call: CAPPluginCall) {
+        guard let color = call.getString("color") else {
+            call.reject("color is required")
+            return
+        }
+        DispatchQueue.main.async { [weak self] in
+            guard let session = self?.session else {
+                call.reject("No PDF is open")
+                return
+            }
+            session.setBackgroundColor(color, call: call)
+        }
+    }
+
+    @objc func getViewerBackgroundColor(_ call: CAPPluginCall) {
+        DispatchQueue.main.async { [weak self] in
+            guard let session = self?.session else {
+                call.reject("No PDF is open")
+                return
+            }
+            session.getViewerBackgroundColor(call: call)
+        }
+    }
+
+    private var e2eHarnessLabel: UILabel?
+    private let e2eHarnessDefaultsKey = "capgo_pdfviewer_e2e_auto_pass_complete"
+
+    @objc func setE2eHarnessLabel(_ call: CAPPluginCall) {
+        let text = call.getString("text") ?? ""
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            let label = self.ensureE2eHarnessLabel()
+            label.text = text
+            label.accessibilityLabel = text
+            call.resolve()
+        }
+    }
+
+    private func ensureE2eHarnessLabel() -> UILabel {
+        if let e2eHarnessLabel {
+            return e2eHarnessLabel
+        }
+        let label = UILabel()
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.font = UIFont.monospacedSystemFont(ofSize: 12, weight: .semibold)
+        label.textColor = UIColor(red: 0.89, green: 0.95, blue: 1, alpha: 1)
+        label.backgroundColor = UIColor(red: 0, green: 0.09, blue: 0.16, alpha: 0.92)
+        label.numberOfLines = 2
+        label.isAccessibilityElement = true
+        let hostView = bridge?.viewController?.view
+        if let hostView {
+            hostView.addSubview(label)
+            NSLayoutConstraint.activate([
+                label.topAnchor.constraint(equalTo: hostView.safeAreaLayoutGuide.topAnchor),
+                label.leadingAnchor.constraint(equalTo: hostView.leadingAnchor),
+                label.trailingAnchor.constraint(equalTo: hostView.trailingAnchor),
+            ])
+            hostView.bringSubviewToFront(label)
+        }
+        e2eHarnessLabel = label
+        return label
+    }
+
+    @objc func setE2eHarnessState(_ call: CAPPluginCall) {
+        let done = call.getBool("autoPassComplete") ?? false
+        UserDefaults.standard.set(done, forKey: e2eHarnessDefaultsKey)
+        call.resolve()
+    }
+
+    @objc func getE2eHarnessState(_ call: CAPPluginCall) {
+        call.resolve([
+            "autoPassComplete": UserDefaults.standard.bool(forKey: e2eHarnessDefaultsKey),
+        ])
     }
 
     @objc func getPageCount(_ call: CAPPluginCall) {
