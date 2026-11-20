@@ -235,7 +235,8 @@ jobs:
   maestro_ios_background_color:
     needs: build_ios
     runs-on: macOS-latest
-    timeout-minutes: 5
+    # Simulator boot + Maestro needs more than 5m on macOS queue/runners.
+    timeout-minutes: 10
     name: Maestro iOS / background color
     steps:
       - name: Check out
@@ -265,7 +266,7 @@ jobs:
         with:
           maestro-version: ${{ env.MAESTRO_VERSION }}
       - name: Run Maestro background color flows
-        timeout-minutes: 5
+        timeout-minutes: 10
         env:
           CAPGO_MAESTRO_IOS_SKIP_BOOT: "1"
           CAPGO_MAESTRO_PIXEL_NEGATIVE: "1"
