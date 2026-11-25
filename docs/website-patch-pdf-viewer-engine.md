@@ -6,7 +6,7 @@ Apply on branch `main` of `Cap-go/website`.
 
 After the inline mode section, add:
 
-```mdx
+````mdx
 ### Inline mode with WebView Native UI Engine
 
 Set `webViewNativeUiEngine: true` when `mode` is `inline` and you provide `elementId`. The plugin registers the native PDF container with [`@webview-native-ui/engine`](https://github.com/webview-native-ui/engine/) so Web overlays and scroll can coordinate with the native surface.
@@ -28,7 +28,7 @@ await PdfViewer.signalNativeUiProjection({ destination: 'web' });
 // show your modal HTML
 await PdfViewer.signalNativeUiProjection({ destination: 'native' });
 ```
-```
+````
 
 ## `src/content/docs/docs/plugins/pdf-viewer/getting-started.mdx`
 

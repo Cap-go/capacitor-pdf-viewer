@@ -97,13 +97,21 @@ final class PdfViewerSession: NSObject, PDFViewDelegate {
                 }
                 self.attachInline(view: view, rect: rect)
                 if request.webViewNativeUiEngine, let webView = self.webView {
+                    self.nativeUiEngineBridge?.detach()
                     let bridge = PdfNativeUiEngineBridge()
-                    bridge.attach(
+                    let attached = bridge.attach(
                         webView: webView,
                         pluginJsName: "PdfViewer",
                         elementId: elementId,
                         containerProvider: { [weak self] in self?.containerView }
                     )
+                    if !attached {
+                        self.dismiss(emitClose: false)
+                        let message = "Failed to initialize WebView Native UI Engine"
+                        self.plugin?.notifyListeners("error", data: ["message": message])
+                        call.reject(message)
+                        return
+                    }
                     self.nativeUiEngineBridge = bridge
                 }
                 self.finishOpen(call: call, document: request.document, pdfView: view)

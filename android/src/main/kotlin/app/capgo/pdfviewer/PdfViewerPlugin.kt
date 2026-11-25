@@ -302,6 +302,7 @@ class PdfViewerPlugin : Plugin() {
         call: PluginCall,
     ) {
         dismiss(emitClose = false)
+        val openToken = openGeneration.get()
         layoutCss = requestedLayout
         document = opened
         pageCount = opened.getPageCount()
@@ -360,6 +361,10 @@ class PdfViewerPlugin : Plugin() {
 
         if (mode == "inline") {
             measureElement(elementId!!) { rect ->
+                if (openToken != openGeneration.get()) {
+                    opened.close()
+                    return@measureElement
+                }
                 if (rect == null) {
                     opened.close()
                     document = null
@@ -371,12 +376,20 @@ class PdfViewerPlugin : Plugin() {
                 attachHost(container, rect, behindWebView = false)
                 pdfView.bind(opened, scrollMode != "single", page)
                 if (webViewNativeUiEngine) {
-                    nativeUiEngineBridge.attach(
-                        window = bridge.activity.window,
-                        webView = bridge.webView,
-                        elementId = elementId,
-                        viewProvider = { host },
-                    )
+                    val attached =
+                        nativeUiEngineBridge.attach(
+                            window = bridge.activity.window,
+                            webView = bridge.webView,
+                            elementId = elementId,
+                            viewProvider = { host },
+                        )
+                    if (!attached) {
+                        dismiss(emitClose = false)
+                        val message = "Failed to initialize WebView Native UI Engine"
+                        notifyListeners("error", JSObject().put("message", message))
+                        call.reject(message)
+                        return@measureElement
+                    }
                 }
                 finishOpen(call)
             }

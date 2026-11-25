@@ -3,6 +3,8 @@ appId: app.capgo.pdfviewer
 - launchApp
 - tapOn: 'Open engine (invalid)'
 - extendedWaitUntil:
-    visible: 'E2E:inline-engine:error:'
+    visible:
+      text: 'E2E:inline-engine:error:.*'
     timeout: 30000
-- assertVisible: 'webViewNativeUiEngine requires mode inline'
+- assertVisible:
+    text: 'webViewNativeUiEngine requires mode inline'

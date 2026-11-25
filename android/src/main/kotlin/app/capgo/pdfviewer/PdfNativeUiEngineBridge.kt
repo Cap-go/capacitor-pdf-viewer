@@ -20,7 +20,9 @@ internal class PdfNativeUiEngineBridge(
         if (channelInstalled) {
             return
         }
-        NativeUIProjection.install(webView)
+        runCatching { NativeUIProjection.install(webView) }.onFailure {
+            Log.e(TAG, "Native UI channel install failed", it)
+        }
         channelInstalled = true
     }
 
@@ -72,7 +74,7 @@ internal class PdfNativeUiEngineBridge(
             elementId
                 .replace("\\", "\\\\")
                 .replace("\"", "\\\"")
-        return "#$escaped"
+        return "[id=\"$escaped\"]"
     }
 
     companion object {

@@ -11,12 +11,13 @@ final class PdfNativeUiEngineBridge {
         projection != nil
     }
 
+    @discardableResult
     func attach(
         webView: WKWebView,
         pluginJsName: String,
         elementId: String,
         containerProvider: @escaping () -> UIView?
-    ) {
+    ) -> Bool {
         detach()
         let selector = Self.projectionSelector(for: elementId)
         let listeners = NativeUIProjection.ReceiveListeners(
@@ -35,9 +36,11 @@ final class PdfNativeUiEngineBridge {
                 receiveListeners: listeners,
                 view: { containerProvider() }
             )
+            return true
         } catch {
             CAPLog.print("[PdfViewer] Native UI projection unavailable: \(error)")
             projection = nil
+            return false
         }
     }
 
@@ -54,6 +57,6 @@ final class PdfNativeUiEngineBridge {
         let escaped = elementId
             .replacingOccurrences(of: "\\", with: "\\\\")
             .replacingOccurrences(of: "\"", with: "\\\"")
-        return "#\(escaped)"
+        return "[id=\"\(escaped)\"]"
     }
 }

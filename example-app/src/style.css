@@ -125,6 +125,10 @@ pre#plugin-output {
   min-height: 1.25rem;
 }
 
+.inline-engine-overlay[hidden] {
+  display: none !important;
+}
+
 .inline-engine-overlay {
   position: fixed;
   inset: 20% 8%;

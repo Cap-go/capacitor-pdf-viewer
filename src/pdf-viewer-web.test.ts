@@ -17,12 +17,15 @@ describe('PdfViewerWeb', () => {
   });
 
   it('rejects webViewNativeUiEngine on web', async () => {
+    const host = document.createElement('div');
+    host.id = 'inline-engine-web-host';
+    document.body.appendChild(host);
     await expect(
       viewer.open({
         source: SAMPLE_PDF_BASE64,
         sourceType: 'base64',
         mode: 'inline',
-        elementId: 'host',
+        elementId: 'inline-engine-web-host',
         webViewNativeUiEngine: true,
       }),
     ).rejects.toThrow(/only available on iOS and Android/i);
