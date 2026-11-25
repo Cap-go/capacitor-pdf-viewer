@@ -10,6 +10,7 @@ import type {
   PdfViewerPlugin,
   PluginVersionResult,
   SetZoomOptions,
+  SignalNativeUiProjectionOptions,
 } from './definitions';
 import { inferSourceType, sourceToBlobUrl } from './source-utils';
 
@@ -35,6 +36,12 @@ export class PdfViewerWeb extends WebPlugin implements PdfViewerPlugin {
    */
   async open(options: OpenPdfOptions): Promise<OpenPdfResult> {
     this.rejectUnderWebView(options);
+
+    if (options.webViewNativeUiEngine === true) {
+      const message = 'webViewNativeUiEngine is only available on iOS and Android';
+      this.notifyListeners('error', { message });
+      throw this.unavailable(message);
+    }
 
     const mode = options.mode ?? 'fullscreen';
 
@@ -226,6 +233,12 @@ export class PdfViewerWeb extends WebPlugin implements PdfViewerPlugin {
     }
     void options;
     throw this.unavailable('updateLayout is only supported on iOS and Android for underWebView / toBack mode.');
+  }
+
+  async signalNativeUiProjection(options: SignalNativeUiProjectionOptions): Promise<void> {
+    void options;
+    const message = 'webViewNativeUiEngine is only available on iOS and Android';
+    throw this.unavailable(message);
   }
 
   async getPluginVersion(): Promise<PluginVersionResult> {

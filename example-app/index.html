@@ -34,10 +34,24 @@
       <p class="lead">Open a PDF fullscreen, inline, or behind this WebView with your own HTML toolbar.</p>
 
       <div id="inline-pdf" class="inline-box" aria-label="Inline PDF area"></div>
+      <p id="e2e-inline-status" class="e2e-status" hidden></p>
+      <div
+        id="inline-engine-overlay"
+        class="inline-engine-overlay"
+        hidden
+        aria-hidden="true"
+        data-testid="inline-engine-overlay"
+      >
+        <p>Web overlay covering inline PDF</p>
+        <button id="dismiss-inline-engine-overlay" type="button">Dismiss overlay</button>
+      </div>
 
       <div class="actions">
         <button id="open-fullscreen" type="button">Open fullscreen</button>
         <button id="open-inline" type="button">Open inline</button>
+        <button id="open-inline-engine" type="button">Open inline (engine)</button>
+        <button id="open-inline-engine-invalid" type="button">Open engine (invalid)</button>
+        <button id="show-inline-engine-overlay" type="button">Show engine overlay</button>
         <button id="open-custom-ui" type="button">Custom UI (toBack)</button>
         <button id="open-url" type="button" hidden>Open from URL</button>
         <button id="prev-page" type="button">Prev page</button>

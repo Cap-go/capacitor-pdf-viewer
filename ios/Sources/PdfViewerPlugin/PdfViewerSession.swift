@@ -24,6 +24,7 @@ struct PdfOpenRequest {
     let scrollMode: String
     let nativeUi: Bool
     let layout: PdfLayoutCss
+    let webViewNativeUiEngine: Bool
 }
 
 final class PdfViewerSession: NSObject, PDFViewDelegate {
@@ -45,8 +46,10 @@ final class PdfViewerSession: NSObject, PDFViewDelegate {
   private var webViewScrollBackgroundColor: UIColor?
   private var webViewSuperviewBackgroundColor: UIColor?
   private var webViewWasOpaque = true
-  private var isHiddenLayer = false
-  private var touchRouter: PdfWebViewTouchRouter?
+    private var isHiddenLayer = false
+    private var touchRouter: PdfWebViewTouchRouter?
+    private var nativeUiEngineBridge: PdfNativeUiEngineBridge?
+    private var webViewNativeUiEngine = false
 
     init(plugin: CAPPlugin, webView: WKWebView?, hostController: UIViewController?) {
         self.plugin = plugin
@@ -74,6 +77,7 @@ final class PdfViewerSession: NSObject, PDFViewDelegate {
         pdfView = view
         isInline = request.mode == "inline"
         isUnderWebView = request.mode == "underWebView"
+        webViewNativeUiEngine = request.webViewNativeUiEngine
         layout = request.layout
         observePageChanges(view)
         observeZoomChanges(view)
@@ -92,6 +96,16 @@ final class PdfViewerSession: NSObject, PDFViewDelegate {
                     return
                 }
                 self.attachInline(view: view, rect: rect)
+                if request.webViewNativeUiEngine, let webView = self.webView {
+                    let bridge = PdfNativeUiEngineBridge()
+                    bridge.attach(
+                        webView: webView,
+                        pluginJsName: "PdfViewer",
+                        elementId: elementId,
+                        containerProvider: { [weak self] in self?.containerView }
+                    )
+                    self.nativeUiEngineBridge = bridge
+                }
                 self.finishOpen(call: call, document: request.document, pdfView: view)
             }
         } else if isUnderWebView {
@@ -191,6 +205,9 @@ final class PdfViewerSession: NSObject, PDFViewDelegate {
         isHiddenLayer = true
         containerView?.isHidden = true
         touchRouter?.setRoutingEnabled(false)
+        if nativeUiEngineBridge?.isActive == true {
+            plugin?.notifyListeners("hidden", data: [:])
+        }
         call.resolve()
     }
 
@@ -207,6 +224,39 @@ final class PdfViewerSession: NSObject, PDFViewDelegate {
         containerView?.isHidden = false
         touchRouter?.setRoutingEnabled(true)
         touchRouter?.refreshOverlayRegions()
+        if nativeUiEngineBridge?.isActive == true {
+            plugin?.notifyListeners("shown", data: [:])
+        }
+        call.resolve()
+    }
+
+    var nativeUiEngineIsActive: Bool {
+        nativeUiEngineBridge?.isActive == true
+    }
+
+    func forwardNativeUiEngineEvent(eventName: String, data: [String: Any]?) {
+        guard nativeUiEngineBridge?.isActive == true else { return }
+        nativeUiEngineBridge?.receive(eventName: eventName, data: data)
+    }
+
+    func signalNativeUiProjection(destination: String, call: CAPPluginCall) {
+        guard nativeUiEngineBridge?.isActive == true else {
+            call.reject("webViewNativeUiEngine is not active")
+            return
+        }
+        let eventName: String
+        switch destination {
+        case "web":
+            eventName = "transitionStarted"
+        case "native":
+            eventName = "shown"
+        case "none":
+            eventName = "hidden"
+        default:
+            call.reject("Invalid destination")
+            return
+        }
+        plugin?.notifyListeners(eventName, data: [:])
         call.resolve()
     }
 
@@ -222,6 +272,9 @@ final class PdfViewerSession: NSObject, PDFViewDelegate {
     }
 
     func dismiss(emitClose: Bool) {
+        nativeUiEngineBridge?.detach()
+        nativeUiEngineBridge = nil
+        webViewNativeUiEngine = false
         if let pageObserver {
             NotificationCenter.default.removeObserver(pageObserver)
             self.pageObserver = nil

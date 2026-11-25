@@ -29,6 +29,7 @@ class PdfViewerPlugin : Plugin() {
     private var webViewVisualState: PdfToBackCompositor.SavedState? = null
     private var touchRouter: PdfUnderWebViewTouchRouter? = null
     private var underWebViewLayoutListener: View.OnLayoutChangeListener? = null
+    private val nativeUiEngineBridge = PdfNativeUiEngineBridge("PdfViewer")
 
     override fun load() {
         implementation = PdfViewer(context)
@@ -53,6 +54,14 @@ class PdfViewerPlugin : Plugin() {
         val headers = stringMap(call.getObject("headers"))
         val nativeUi = call.getBoolean("nativeUi", mode != "underWebView") == true
         val requestedLayout = readLayout(call.getObject("layout"))
+        val webViewNativeUiEngine = call.getBoolean("webViewNativeUiEngine", false) == true
+
+        if (webViewNativeUiEngine && mode != "inline") {
+            val message = "webViewNativeUiEngine requires mode inline"
+            notifyListeners("error", JSObject().put("message", message))
+            call.reject(message)
+            return
+        }
 
         if (mode == "inline" && elementId.isNullOrBlank()) {
             val message = "elementId is required when mode is inline"
@@ -72,7 +81,17 @@ class PdfViewerPlugin : Plugin() {
                         return@runOnUiThread
                     }
                     try {
-                        present(opened, mode, elementId, page, scrollMode, nativeUi, requestedLayout, call)
+                        present(
+                            opened,
+                            mode,
+                            elementId,
+                            page,
+                            scrollMode,
+                            nativeUi,
+                            requestedLayout,
+                            webViewNativeUiEngine,
+                            call,
+                        )
                     } catch (error: Exception) {
                         val owned = document === opened
                         dismiss(emitClose = false)
@@ -188,6 +207,9 @@ class PdfViewerPlugin : Plugin() {
         bridge.activity.runOnUiThread {
             container.visibility = View.INVISIBLE
             touchRouter?.setRoutingEnabled(false)
+            if (nativeUiEngineBridge.isActive) {
+                notifyListeners("hidden", JSObject())
+            }
             call.resolve()
         }
     }
@@ -203,6 +225,9 @@ class PdfViewerPlugin : Plugin() {
             container.visibility = View.VISIBLE
             touchRouter?.setRoutingEnabled(true)
             touchRouter?.refreshOverlayRegions()
+            if (nativeUiEngineBridge.isActive) {
+                notifyListeners("shown", JSObject())
+            }
             call.resolve()
         }
     }
@@ -233,6 +258,38 @@ class PdfViewerPlugin : Plugin() {
         call.resolve(ret)
     }
 
+    @PluginMethod
+    fun signalNativeUiProjection(call: PluginCall) {
+        if (!nativeUiEngineBridge.isActive) {
+            call.reject("webViewNativeUiEngine is not active")
+            return
+        }
+        val destination =
+            call.getString("destination") ?: run {
+                call.reject("destination is required")
+                return
+            }
+        val eventName =
+            when (destination) {
+                "web" -> "transitionStarted"
+                "native" -> "shown"
+                "none" -> "hidden"
+                else -> {
+                    call.reject("Invalid destination")
+                    return
+                }
+            }
+        notifyListeners(eventName, JSObject())
+        call.resolve()
+    }
+
+    override fun notifyListeners(eventName: String, data: JSObject, retainUntilConsumed: Boolean) {
+        if (nativeUiEngineBridge.isActive) {
+            nativeUiEngineBridge.receive(eventName, data)
+        }
+        super.notifyListeners(eventName, data, retainUntilConsumed)
+    }
+
     private fun present(
         opened: PdfDocument,
         mode: String,
@@ -241,6 +298,7 @@ class PdfViewerPlugin : Plugin() {
         scrollMode: String,
         nativeUi: Boolean,
         requestedLayout: LayoutCss,
+        webViewNativeUiEngine: Boolean,
         call: PluginCall,
     ) {
         dismiss(emitClose = false)
@@ -312,6 +370,14 @@ class PdfViewerPlugin : Plugin() {
                 }
                 attachHost(container, rect, behindWebView = false)
                 pdfView.bind(opened, scrollMode != "single", page)
+                if (webViewNativeUiEngine) {
+                    nativeUiEngineBridge.attach(
+                        window = bridge.activity.window,
+                        webView = bridge.webView,
+                        elementId = elementId,
+                        viewProvider = { host },
+                    )
+                }
                 finishOpen(call)
             }
         } else if (underWebView) {
@@ -452,6 +518,7 @@ class PdfViewerPlugin : Plugin() {
     }
 
     private fun dismiss(emitClose: Boolean) {
+        nativeUiEngineBridge.detach()
         removeUnderWebViewLayoutListener()
         touchRouter?.release()
         touchRouter = null

@@ -81,6 +81,9 @@
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.59.4"
   },
+  "dependencies": {
+    "@webview-native-ui/engine": "1.0.11"
+  },
   "peerDependencies": {
     "@capacitor/core": ">=8.0.0"
   },
