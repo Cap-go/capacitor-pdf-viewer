@@ -14,6 +14,7 @@
     "@capacitor/android": "^8.5.2",
     "@capacitor/ios": "^8.5.2",
     "@capgo/capacitor-pdf-viewer": "file:..",
+    "@webview-native-ui/engine": "1.0.11",
     "@capgo/capacitor-updater": "^8.45.11"
   },
   "devDependencies": {

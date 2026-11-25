@@ -27,6 +27,15 @@ We build, improve and fix our plugins with heavy use of AI, so issues usually ge
 
 [Learn more about how we build with AI](https://capgo.app/docs/plugins/ai-engineering/)
 
+## WebView Native UI Engine (optional, inline mode)
+
+Set `webViewNativeUiEngine: true` on `PdfViewer.open()` when `mode` is `inline` and you pass `elementId`. The plugin registers the native PDF surface with [`@webview-native-ui/engine`](https://github.com/webview-native-ui/engine/) (v1.0.11) so Web modals, sheets, and scrolling content can cover or track the viewer without breaking native interaction when the overlay closes.
+
+- Default is `false`. When off, inline behavior is unchanged from earlier releases.
+- iOS and Android only. Web rejects `webViewNativeUiEngine`.
+- Call `PdfViewer.signalNativeUiProjection()` when your HTML covers or uncovers the inline slot (`destination`: `web`, `native`, or `none`).
+- CocoaPods apps also need a direct npm dependency on `@webview-native-ui/engine@1.0.11` and `pod 'WebViewNativeUIEngine', :path => '../../node_modules/@webview-native-ui/engine'` in the app `Podfile` target (outside `capacitor_pods`).
+
 ## Features
 
 - Open PDFs from a device path, `file://` URL, HTTPS URL, or base64 (including `data:` URIs)
@@ -260,6 +269,7 @@ See **`example-app/`** (button **Custom UI (toBack)**) for a working demo.
 * [`hide()`](#hide)
 * [`show()`](#show)
 * [`updateLayout(...)`](#updatelayout)
+* [`signalNativeUiProjection(...)`](#signalnativeuiprojection)
 * [`getPluginVersion()`](#getpluginversion)
 * [`addListener('load', ...)`](#addlistenerload-)
 * [`addListener('pageChange', ...)`](#addlistenerpagechange-)
@@ -462,6 +472,25 @@ On web this call is rejected because under-WebView presentation is not available
 --------------------
 
 
+### signalNativeUiProjection(...)
+
+```typescript
+signalNativeUiProjection(options: SignalNativeUiProjectionOptions) => Promise<void>
+```
+
+Notify the WebView Native UI Engine that Web UI is covering (`web`), clearing (`none`),
+or exposing (`native`) the inline viewer. Only available while a document is open with
+{@link <a href="#openpdfoptions">OpenPdfOptions.webViewNativeUiEngine</a>}.
+
+| Param         | Type                                                                                        |
+| ------------- | ------------------------------------------------------------------------------------------- |
+| **`options`** | <code><a href="#signalnativeuiprojectionoptions">SignalNativeUiProjectionOptions</a></code> |
+
+**Since:** 8.4.0
+
+--------------------
+
+
 ### getPluginVersion()
 
 ```typescript
@@ -614,19 +643,20 @@ Result returned after a PDF successfully opens.
 
 Options for {@link PdfViewerPlugin.open}.
 
-| Prop             | Type                                                            | Description                                                                                                                                                                                                                                                                                | Default                   | Since |
-| ---------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------- | ----- |
-| **`source`**     | <code>string</code>                                             | PDF location: file URL, device path, https URL, or base64 (raw or `data:` URI).                                                                                                                                                                                                            |                           |       |
-| **`sourceType`** | <code><a href="#pdfsourcetype">PdfSourceType</a></code>         | Explicit source kind. When omitted: - `data:` or raw base64 without a scheme =&gt; `base64` - `http`/`https` =&gt; `url` - otherwise =&gt; `file` (treated like a path or file URL; `path` is an alias on native)                                                                          |                           | 8.0.0 |
-| **`headers`**    | <code><a href="#record">Record</a>&lt;string, string&gt;</code> | HTTP headers used when downloading an https `url` source (for example auth tokens).                                                                                                                                                                                                        |                           | 8.0.0 |
-| **`password`**   | <code>string</code>                                             | Password for encrypted PDFs on iOS and Android. On web the password cannot be injected into the browser viewer; the browser may still prompt.                                                                                                                                              |                           | 8.0.0 |
-| **`mode`**       | <code><a href="#pdfdisplaymode">PdfDisplayMode</a></code>       | How to present the viewer.                                                                                                                                                                                                                                                                 | <code>'fullscreen'</code> | 8.0.0 |
-| **`toBack`**     | <code>boolean</code>                                            | Shorthand for `mode: 'underWebView'`. When true, the native PDF is placed behind a transparent WebView so your HTML controls sit on top. Implies `nativeUi: false`. On web, `toBack: true` and `mode: 'underWebView'` are rejected.                                                        | <code>false</code>        | 8.0.0 |
-| **`nativeUi`**   | <code>boolean</code>                                            | When false, hides all native chrome (close button, toolbars). Defaults to false when `toBack` or `mode` is `underWebView`, otherwise true for fullscreen. On web, `nativeUi: false` with `mode: 'fullscreen'` is rejected. Use `inline` mode with `elementId`, or keep `nativeUi` enabled. |                           | 8.0.0 |
-| **`layout`**     | <code><a href="#pdflayoutoptions">PdfLayoutOptions</a></code>   | Layout for `underWebView` / `toBack`. Ignored for inline and classic fullscreen overlay.                                                                                                                                                                                                   |                           | 8.0.0 |
-| **`elementId`**  | <code>string</code>                                             | DOM element id used when `mode` is `inline`. Native code measures this element and places the viewer over it.                                                                                                                                                                              |                           | 8.0.0 |
-| **`page`**       | <code>number</code>                                             | Initial page, 1-based.                                                                                                                                                                                                                                                                     |                           | 8.0.0 |
-| **`scrollMode`** | <code><a href="#pdfscrollmode">PdfScrollMode</a></code>         | Scroll behavior inside the viewer.                                                                                                                                                                                                                                                         | <code>'continuous'</code> | 8.0.0 |
+| Prop                        | Type                                                            | Description                                                                                                                                                                                                                                                                                                                                                                     | Default                   | Since |
+| --------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- | ----- |
+| **`source`**                | <code>string</code>                                             | PDF location: file URL, device path, https URL, or base64 (raw or `data:` URI).                                                                                                                                                                                                                                                                                                 |                           |       |
+| **`sourceType`**            | <code><a href="#pdfsourcetype">PdfSourceType</a></code>         | Explicit source kind. When omitted: - `data:` or raw base64 without a scheme =&gt; `base64` - `http`/`https` =&gt; `url` - otherwise =&gt; `file` (treated like a path or file URL; `path` is an alias on native)                                                                                                                                                               |                           | 8.0.0 |
+| **`headers`**               | <code><a href="#record">Record</a>&lt;string, string&gt;</code> | HTTP headers used when downloading an https `url` source (for example auth tokens).                                                                                                                                                                                                                                                                                             |                           | 8.0.0 |
+| **`password`**              | <code>string</code>                                             | Password for encrypted PDFs on iOS and Android. On web the password cannot be injected into the browser viewer; the browser may still prompt.                                                                                                                                                                                                                                   |                           | 8.0.0 |
+| **`mode`**                  | <code><a href="#pdfdisplaymode">PdfDisplayMode</a></code>       | How to present the viewer.                                                                                                                                                                                                                                                                                                                                                      | <code>'fullscreen'</code> | 8.0.0 |
+| **`toBack`**                | <code>boolean</code>                                            | Shorthand for `mode: 'underWebView'`. When true, the native PDF is placed behind a transparent WebView so your HTML controls sit on top. Implies `nativeUi: false`. On web, `toBack: true` and `mode: 'underWebView'` are rejected.                                                                                                                                             | <code>false</code>        | 8.0.0 |
+| **`nativeUi`**              | <code>boolean</code>                                            | When false, hides all native chrome (close button, toolbars). Defaults to false when `toBack` or `mode` is `underWebView`, otherwise true for fullscreen. On web, `nativeUi: false` with `mode: 'fullscreen'` is rejected. Use `inline` mode with `elementId`, or keep `nativeUi` enabled.                                                                                      |                           | 8.0.0 |
+| **`layout`**                | <code><a href="#pdflayoutoptions">PdfLayoutOptions</a></code>   | Layout for `underWebView` / `toBack`. Ignored for inline and classic fullscreen overlay.                                                                                                                                                                                                                                                                                        |                           | 8.0.0 |
+| **`elementId`**             | <code>string</code>                                             | DOM element id used when `mode` is `inline`. Native code measures this element and places the viewer over it.                                                                                                                                                                                                                                                                   |                           | 8.0.0 |
+| **`webViewNativeUiEngine`** | <code>boolean</code>                                            | When true (iOS and Android only), inline mode registers the viewer with [`@webview-native-ui/engine`](https://github.com/webview-native-ui/engine) so Web overlays and page scroll can coordinate with the native PDF surface. Requires `mode: 'inline'` and `elementId`. Call {@link PdfViewerPlugin.signalNativeUiProjection} when your Web UI covers or uncovers the viewer. | <code>false</code>        | 8.4.0 |
+| **`page`**                  | <code>number</code>                                             | Initial page, 1-based.                                                                                                                                                                                                                                                                                                                                                          |                           | 8.0.0 |
+| **`scrollMode`**            | <code><a href="#pdfscrollmode">PdfScrollMode</a></code>         | Scroll behavior inside the viewer.                                                                                                                                                                                                                                                                                                                                              | <code>'continuous'</code> | 8.0.0 |
 
 
 #### PdfLayoutOptions
@@ -676,6 +706,15 @@ Current page payload.
 | Prop       | Type                | Description            |
 | ---------- | ------------------- | ---------------------- |
 | **`page`** | <code>number</code> | Current page, 1-based. |
+
+
+#### SignalNativeUiProjectionOptions
+
+Options for {@link PdfViewerPlugin.signalNativeUiProjection}.
+
+| Prop              | Type                                                                                    |
+| ----------------- | --------------------------------------------------------------------------------------- |
+| **`destination`** | <code><a href="#nativeuiprojectiondestination">NativeUiProjectionDestination</a></code> |
 
 
 #### PluginVersionResult
@@ -778,6 +817,14 @@ Page scrolling behavior.
 - `single`: one page at a time.
 
 <code>'continuous' | 'single'</code>
+
+
+#### NativeUiProjectionDestination
+
+Destination for {@link PdfViewerPlugin.signalNativeUiProjection} while
+{@link <a href="#openpdfoptions">OpenPdfOptions.webViewNativeUiEngine</a>} is active.
+
+<code>'native' | 'web' | 'none'</code>
 
 
 #### PdfCloseEvent

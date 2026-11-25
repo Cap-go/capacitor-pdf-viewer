@@ -131,6 +131,18 @@ export interface OpenPdfOptions {
    */
   elementId?: string;
   /**
+   * When true (iOS and Android only), inline mode registers the viewer with
+   * [`@webview-native-ui/engine`](https://github.com/webview-native-ui/engine) so Web overlays
+   * and page scroll can coordinate with the native PDF surface. Requires `mode: 'inline'` and
+   * `elementId`. Call {@link PdfViewerPlugin.signalNativeUiProjection} when your Web UI covers
+   * or uncovers the viewer.
+   *
+   * @default false
+   * @platform android, ios
+   * @since 8.4.0
+   */
+  webViewNativeUiEngine?: boolean;
+  /**
    * Initial page, 1-based.
    *
    * @since 8.0.0
@@ -183,6 +195,23 @@ export interface SetZoomOptions {
    * Zoom multiplier. `1` is the default fit scale on native.
    */
   scale: number;
+}
+
+/**
+ * Destination for {@link PdfViewerPlugin.signalNativeUiProjection} while
+ * {@link OpenPdfOptions.webViewNativeUiEngine} is active.
+ *
+ * @since 8.4.0
+ */
+export type NativeUiProjectionDestination = 'native' | 'web' | 'none';
+
+/**
+ * Options for {@link PdfViewerPlugin.signalNativeUiProjection}.
+ *
+ * @since 8.4.0
+ */
+export interface SignalNativeUiProjectionOptions {
+  destination: NativeUiProjectionDestination;
 }
 
 /**
@@ -406,6 +435,16 @@ export interface PdfViewerPlugin {
    * @since 8.0.0
    */
   updateLayout(options: PdfLayoutOptions): Promise<void>;
+
+  /**
+   * Notify the WebView Native UI Engine that Web UI is covering (`web`), clearing (`none`),
+   * or exposing (`native`) the inline viewer. Only available while a document is open with
+   * {@link OpenPdfOptions.webViewNativeUiEngine}.
+   *
+   * @platform android, ios
+   * @since 8.4.0
+   */
+  signalNativeUiProjection(options: SignalNativeUiProjectionOptions): Promise<void>;
 
   /**
    * Get the native or web implementation version marker.

@@ -46,6 +46,15 @@ const invalidateCustomUiOpen = () => {
   demoOpenGeneration += 1;
 };
 
+const setE2eInlineStatus = (text) => {
+  const el = document.getElementById('e2e-inline-status');
+  if (!el) {
+    return;
+  }
+  el.hidden = false;
+  el.textContent = text;
+};
+
 const log = (label, value) => {
   const line = typeof value === 'string' ? value : JSON.stringify(value);
   const stamp = new Date().toISOString().slice(11, 19);
@@ -170,6 +179,101 @@ document.getElementById('open-fullscreen').addEventListener('click', async () =>
     log('open fullscreen', result);
   } catch (error) {
     log('error', error?.message ?? error);
+  }
+});
+
+document.getElementById('open-inline-engine-invalid')?.addEventListener('click', async () => {
+  if (!Capacitor.isNativePlatform()) {
+    setE2eInlineStatus('E2E:inline-engine:error:requires native platform');
+    log('error', 'Inline engine demo requires iOS or Android');
+    return;
+  }
+  try {
+    const source = await bundledSample();
+    await PdfViewer.open({
+      source,
+      sourceType: 'base64',
+      mode: 'fullscreen',
+      webViewNativeUiEngine: true,
+    });
+    setE2eInlineStatus('E2E:inline-engine:error:unexpected resolve');
+  } catch (error) {
+    const message = error?.message ?? String(error);
+    setE2eInlineStatus(`E2E:inline-engine:error:${message}`);
+    log('error', message);
+  }
+});
+
+document.getElementById('open-inline-engine')?.addEventListener('click', async () => {
+  if (!Capacitor.isNativePlatform()) {
+    setE2eInlineStatus('E2E:inline-engine:error:requires native platform');
+    log('error', 'Inline engine demo requires iOS or Android');
+    return;
+  }
+  try {
+    const openGeneration = ++demoOpenGeneration;
+    cancelAutoOpenCustomUi();
+    setCustomUiVisible(false);
+    zoom = 1;
+    const source = await bundledSample();
+    if (openGeneration !== demoOpenGeneration) {
+      return;
+    }
+    const result = await PdfViewer.open({
+      source,
+      sourceType: 'base64',
+      mode: 'inline',
+      elementId: 'inline-pdf',
+      webViewNativeUiEngine: true,
+      page: 1,
+      scrollMode: 'continuous',
+    });
+    currentPage = result.page;
+    pageCount = result.pageCount;
+    setE2eInlineStatus(`E2E:inline-engine:ok:pageCount=${result.pageCount}`);
+    log('open inline engine', result);
+  } catch (error) {
+    const message = error?.message ?? String(error);
+    setE2eInlineStatus(`E2E:inline-engine:error:${message}`);
+    log('error', message);
+  }
+});
+
+document.getElementById('show-inline-engine-overlay')?.addEventListener('click', async () => {
+  const overlay = document.getElementById('inline-engine-overlay');
+  if (!overlay) {
+    return;
+  }
+  try {
+    if (Capacitor.isNativePlatform()) {
+      await PdfViewer.signalNativeUiProjection({ destination: 'web' });
+    }
+    overlay.removeAttribute('hidden');
+    overlay.setAttribute('aria-hidden', 'false');
+    setE2eInlineStatus('E2E:inline-engine:overlay:visible');
+  } catch (error) {
+    const message = error?.message ?? String(error);
+    setE2eInlineStatus(`E2E:inline-engine:overlay:error:${message}`);
+    log('error', message);
+  }
+});
+
+document.getElementById('dismiss-inline-engine-overlay')?.addEventListener('click', async () => {
+  const overlay = document.getElementById('inline-engine-overlay');
+  if (!overlay) {
+    return;
+  }
+  overlay.setAttribute('hidden', 'hidden');
+  overlay.setAttribute('aria-hidden', 'true');
+  try {
+    if (Capacitor.isNativePlatform()) {
+      await PdfViewer.signalNativeUiProjection({ destination: 'native' });
+    }
+    setE2eInlineStatus('E2E:inline-engine:overlay:dismissed');
+  } catch (error) {
+    const message = error?.message ?? String(error);
+    setE2eInlineStatus(`E2E:inline-engine:overlay:error:${message}`);
+    log('error', message);
   }
 });
 

@@ -1,0 +1,16 @@
+appId: app.capgo.pdfviewer
+---
+- launchApp
+- tapOn: 'Open inline \(engine\)'
+- extendedWaitUntil:
+    visible:
+      text: 'E2E:inline-engine:ok:pageCount=.*'
+    timeout: 60000
+- tapOn: 'Show engine overlay'
+- extendedWaitUntil:
+    visible: 'E2E:inline-engine:overlay:visible'
+    timeout: 10000
+- tapOn: 'Dismiss overlay'
+- extendedWaitUntil:
+    visible: 'E2E:inline-engine:overlay:dismissed'
+    timeout: 10000

@@ -16,6 +16,35 @@ describe('PdfViewerWeb', () => {
     await expect(viewer.getPluginVersion()).resolves.toEqual({ version: 'web' });
   });
 
+  it('rejects webViewNativeUiEngine on web', async () => {
+    const host = document.createElement('div');
+    host.id = 'inline-engine-web-host';
+    document.body.appendChild(host);
+    await expect(
+      viewer.open({
+        source: SAMPLE_PDF_BASE64,
+        sourceType: 'base64',
+        mode: 'inline',
+        elementId: 'inline-engine-web-host',
+        webViewNativeUiEngine: true,
+      }),
+    ).rejects.toThrow(/only available on iOS and Android/i);
+  });
+
+  it('opens inline without webViewNativeUiEngine unchanged', async () => {
+    const host = document.createElement('div');
+    host.id = 'inline-host-off';
+    document.body.appendChild(host);
+    const result = await viewer.open({
+      source: SAMPLE_PDF_BASE64,
+      sourceType: 'base64',
+      mode: 'inline',
+      elementId: 'inline-host-off',
+    });
+    expect(result.pageCount).toBeGreaterThanOrEqual(1);
+    expect(host.querySelector('iframe[title="PDF Viewer"]')).not.toBeNull();
+  });
+
   it('requires elementId for inline mode', async () => {
     await expect(viewer.open({ source: SAMPLE_PDF_BASE64, sourceType: 'base64', mode: 'inline' })).rejects.toThrow(
       'elementId is required when mode is inline',

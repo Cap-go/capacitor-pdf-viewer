@@ -19,7 +19,8 @@ public class PdfViewerPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "hide", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "show", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "updateLayout", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "getPluginVersion", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "getPluginVersion", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "signalNativeUiProjection", returnType: CAPPluginReturnPromise)
     ]
 
     private let implementation = PdfViewer()
@@ -46,6 +47,14 @@ public class PdfViewerPlugin: CAPPlugin, CAPBridgedPlugin {
         let headers = Self.stringMap(from: call.getObject("headers"))
         let nativeUi = call.getBool("nativeUi") ?? (mode != "underWebView")
         let layout = Self.layout(from: call.getObject("layout"))
+        let webViewNativeUiEngine = call.getBool("webViewNativeUiEngine") ?? false
+
+        if webViewNativeUiEngine && mode != "inline" {
+            let message = "webViewNativeUiEngine requires mode inline"
+            notifyListeners("error", data: ["message": message])
+            call.reject(message)
+            return
+        }
 
         if mode == "inline", elementId == nil || elementId?.isEmpty == true {
             let message = PdfViewerError.missingElementId.localizedDescription
@@ -81,7 +90,8 @@ public class PdfViewerPlugin: CAPPlugin, CAPBridgedPlugin {
                             page: page,
                             scrollMode: scrollMode,
                             nativeUi: nativeUi,
-                            layout: layout
+                            layout: layout,
+                            webViewNativeUiEngine: webViewNativeUiEngine
                         )
                         active.present(request: request, call: call)
                     }
@@ -205,6 +215,26 @@ public class PdfViewerPlugin: CAPPlugin, CAPBridgedPlugin {
         call.resolve([
             "version": implementation.getPluginVersion()
         ])
+    }
+
+    @objc func signalNativeUiProjection(_ call: CAPPluginCall) {
+        let destination = call.getString("destination") ?? ""
+        DispatchQueue.main.async { [weak self] in
+            guard let session = self?.session else {
+                call.reject("No PDF is open")
+                return
+            }
+            session.signalNativeUiProjection(destination: destination, call: call)
+        }
+    }
+
+    public override func notifyListeners(
+        _ eventName: String,
+        data: [String: Any]?,
+        retainUntilConsumed: Bool
+    ) {
+        session?.forwardNativeUiEngineEvent(eventName: eventName, data: data)
+        super.notifyListeners(eventName, data: data, retainUntilConsumed: retainUntilConsumed)
     }
 
     private func ensureSession() -> PdfViewerSession {
